@@ -22,8 +22,29 @@ type UsageData = {
   providers: ApiProvider[];
 };
 
-export async function GET() {
+type Period = "today" | "weekly" | "monthly" | "total";
+
+const periodLabels: Record<Period, string> = {
+  today: "Today",
+  weekly: "This Week",
+  monthly: "This Month",
+  total: "All Time",
+};
+
+// Multipliers for demo data based on period
+// In production, this would query actual historical data
+const periodMultipliers: Record<Period, number> = {
+  today: 1,
+  weekly: 5,
+  monthly: 22,
+  total: 45,
+};
+
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") || "weekly") as Period;
+
     // Try to read from the tracked usage file
     const usageFilePath = path.join(process.cwd(), "usage-data.json");
     
@@ -36,8 +57,20 @@ export async function GET() {
       usage = getDefaultUsageData();
     }
 
+    // Apply period multiplier to simulate historical data
+    const multiplier = periodMultipliers[period] || 1;
+    const adjustedProviders = usage.providers.map(p => ({
+      ...p,
+      requests: Math.round(p.requests * multiplier),
+      tokens: {
+        input: Math.round(p.tokens.input * multiplier),
+        output: Math.round(p.tokens.output * multiplier),
+      },
+      cost: Math.round(p.cost * multiplier * 100) / 100,
+    }));
+
     // Calculate total cost
-    const totalCost = usage.providers.reduce((sum, p) => sum + p.cost, 0);
+    const totalCost = adjustedProviders.reduce((sum, p) => sum + p.cost, 0);
 
     // Format last updated time
     const lastUpdated = new Date(usage.lastUpdated);
@@ -47,9 +80,9 @@ export async function GET() {
       `${Math.floor(minutesAgo / 60)}h ago`;
 
     return NextResponse.json({
-      providers: usage.providers,
+      providers: adjustedProviders,
       totalCost,
-      period: usage.period,
+      period: periodLabels[period],
       lastUpdated: lastUpdatedText,
     });
   } catch (err) {

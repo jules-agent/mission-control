@@ -18,14 +18,16 @@ export default async function HomePage() {
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <DashboardHeader />
         
-        {/* Top row: compact panels */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <ModelWorkflowPanel />
+        {/* Model workflow - full width row */}
+        <ModelWorkflowPanel />
+        
+        {/* API Usage + System Status side by side */}
+        <div className="grid gap-6 lg:grid-cols-2">
           <ApiUsagePanel />
           <StatusPanel />
         </div>
         
-        {/* Bottom row: tasks (full width) */}
+        {/* Tasks panel - full width */}
         <TasksPanel />
       </div>
     </main>
