@@ -1,21 +1,21 @@
 {
-  "lastUpdated": "2026-02-05T19:41:00.000Z",
+  "lastUpdated": "2026-02-05T19:42:00.000Z",
   "period": "Today",
   "providers": [
     {
       "id": "anthropic",
       "name": "Anthropic (Opus)",
-      "requests": 12,
-      "tokens": { "input": 145000, "output": 18500 },
-      "cost": 6.85,
+      "requests": 11,
+      "tokens": { "input": 68000, "output": 4200 },
+      "cost": 0.52,
       "status": "active",
-      "pricing": { "inputPer1M": 15, "outputPer1M": 75 }
+      "pricing": { "inputPer1M": 15, "outputPer1M": 75, "note": "Includes cache reads" }
     },
     {
       "id": "nvidia-kimi",
       "name": "NVIDIA (Kimi K2.5)",
-      "requests": 47,
-      "tokens": { "input": 420000, "output": 65000 },
+      "requests": 10,
+      "tokens": { "input": 185000, "output": 28000 },
       "cost": 0.00,
       "status": "active",
       "pricing": { "inputPer1M": 0, "outputPer1M": 0, "note": "Free tier" }
@@ -25,9 +25,18 @@
       "name": "OpenAI (Embeddings)",
       "requests": 156,
       "tokens": { "input": 89000, "output": 0 },
-      "cost": 0.02,
+      "cost": 0.01,
       "status": "active",
-      "pricing": { "inputPer1M": 0.13, "outputPer1M": 0, "note": "text-embedding-3-small" }
+      "pricing": { "inputPer1M": 0.13, "note": "Memory vector indexing" }
+    },
+    {
+      "id": "moonshot",
+      "name": "Moonshot (Kimi K2)",
+      "requests": 1,
+      "tokens": { "input": 12000, "output": 1500 },
+      "cost": 0.00,
+      "status": "idle",
+      "pricing": { "note": "Direct API - limited use" }
     },
     {
       "id": "brave",
@@ -36,7 +45,7 @@
       "tokens": { "input": 0, "output": 0 },
       "cost": 0.00,
       "status": "error",
-      "pricing": { "note": "API key invalid" }
+      "pricing": { "note": "API key invalid - needs renewal" }
     }
   ]
 }
