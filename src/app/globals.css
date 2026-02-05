@@ -4,14 +4,155 @@
 
 :root {
   color-scheme: dark;
+  --gradient-start: #0f172a;
+  --gradient-mid: #1e1b4b;
+  --gradient-end: #0c0a09;
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 min-h-screen;
-  background-image: radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.12) 1px, transparent 0);
-  background-size: 28px 28px;
+  @apply text-slate-100 min-h-screen antialiased;
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 50%, var(--gradient-end) 100%);
+  background-attachment: fixed;
 }
 
+/* Animated mesh gradient background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(120, 119, 198, 0.15), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 60%, rgba(255, 119, 198, 0.08), transparent),
+    radial-gradient(ellipse 50% 40% at 50% 90%, rgba(120, 200, 255, 0.1), transparent);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Subtle grid overlay */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Glass card effect */
+.glass {
+  @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08];
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.3),
+    0 0 1px 0 rgba(255, 255, 255, 0.1) inset;
+}
+
+.glass-strong {
+  @apply bg-white/[0.06] backdrop-blur-2xl border border-white/[0.1];
+  box-shadow: 
+    0 8px 32px -4px rgba(0, 0, 0, 0.4),
+    0 0 1px 0 rgba(255, 255, 255, 0.15) inset;
+}
+
+/* Glow effects */
+.glow-sm {
+  box-shadow: 0 0 20px -5px currentColor;
+}
+
+.glow {
+  box-shadow: 0 0 40px -10px currentColor;
+}
+
+/* Text gradient */
+.text-gradient {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #f0abfc 100%);
+}
+
+.text-gradient-brand {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
+}
+
+/* Status colors with glow */
+.status-operational {
+  @apply text-emerald-400;
+  text-shadow: 0 0 20px rgba(52, 211, 153, 0.5);
+}
+
+.status-degraded {
+  @apply text-amber-400;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.status-down {
+  @apply text-red-400;
+  text-shadow: 0 0 20px rgba(248, 113, 113, 0.5);
+}
+
+/* Animated border gradient */
+@keyframes border-rotate {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.border-gradient {
+  position: relative;
+  border-radius: 1.5rem;
+}
+
+.border-gradient::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(var(--angle), #3b82f6, #8b5cf6, #ec4899, #3b82f6);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-rotate 8s linear infinite;
+}
+
+/* Smooth transitions */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}
+
+/* Hide scrollbar utility */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -19,4 +160,14 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Pulse animation for live indicators */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+  50% { opacity: 0.8; box-shadow: 0 0 0 4px transparent; }
+}
+
+.pulse-live {
+  animation: pulse-glow 2s ease-in-out infinite;
 }

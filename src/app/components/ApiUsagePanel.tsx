@@ -2,140 +2,151 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type ApiProvider = {
-  id: string;
-  name: string;
-  requests: number;
-  tokens: { input: number; output: number };
-  cost: number;
-  status: "active" | "idle" | "error";
-};
-
 type UsageData = {
-  providers: ApiProvider[];
-  totalCost: number;
   period: string;
-  lastUpdated?: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalCost: number;
+  sessions: number;
+  avgResponseTime?: number;
 };
 
-type TimePeriod = "today" | "weekly" | "monthly" | "total";
+type Period = "today" | "week" | "month" | "total";
 
-const REFRESH_INTERVAL = 60000;
-
-const periods: { key: TimePeriod; label: string }[] = [
+const PERIODS: { key: Period; label: string }[] = [
   { key: "today", label: "Today" },
-  { key: "weekly", label: "Week" },
-  { key: "monthly", label: "Month" },
+  { key: "week", label: "Week" },
+  { key: "month", label: "Month" },
   { key: "total", label: "Total" },
 ];
 
-function formatNumber(n: number): string {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
-  if (n >= 1000) return (n / 1000).toFixed(1) + "K";
-  return n.toString();
+function formatNumber(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toString();
 }
 
-function formatCost(n: number): string {
-  return "$" + n.toFixed(2);
-}
-
-function ProviderRow({ provider }: { provider: ApiProvider }) {
-  const statusColors = {
-    active: "bg-emerald-400",
-    idle: "bg-slate-500",
-    error: "bg-red-400",
-  };
-
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-slate-800/50 last:border-0">
-      <div className="flex items-center gap-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${statusColors[provider.status]}`} />
-        <span className="text-xs text-slate-300">{provider.name}</span>
-      </div>
-      <div className="flex items-center gap-4 text-[10px]">
-        <span className="text-slate-500">{formatNumber(provider.requests)} req</span>
-        <span className="text-slate-500">{formatNumber(provider.tokens.input + provider.tokens.output)} tok</span>
-        <span className="text-slate-300 font-medium w-14 text-right">{formatCost(provider.cost)}</span>
-      </div>
-    </div>
-  );
+function formatCost(cost: number): string {
+  return "$" + cost.toFixed(2);
 }
 
 export function ApiUsagePanel() {
-  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [usage, setUsage] = useState<Record<Period, UsageData> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("weekly");
+  const [activePeriod, setActivePeriod] = useState<Period>("week");
 
-  const fetchUsage = useCallback(async (period: TimePeriod) => {
+  const fetchUsage = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch(`/api/usage?period=${period}`, { cache: "no-store" });
-      if (!response.ok) throw new Error("Failed to load usage data");
+      const response = await fetch("/api/usage", { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load usage data.");
       const data = await response.json();
-      setUsage(data);
+      setUsage(data.usage);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : "Unknown error.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchUsage(selectedPeriod);
-    const interval = setInterval(() => fetchUsage(selectedPeriod), REFRESH_INTERVAL);
+    fetchUsage();
+    const interval = setInterval(fetchUsage, 60000);
     return () => clearInterval(interval);
-  }, [fetchUsage, selectedPeriod]);
+  }, [fetchUsage]);
 
-  const handlePeriodChange = (period: TimePeriod) => {
-    setSelectedPeriod(period);
-    setLoading(true);
-    fetchUsage(period);
-  };
+  const currentUsage = usage?.[activePeriod];
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 shadow-xl shadow-slate-950/40 h-full">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-monoDisplay text-sm text-slate-100">API Usage</h2>
-        {usage?.lastUpdated && (
-          <span className="text-[10px] text-slate-500">{usage.lastUpdated}</span>
-        )}
+    <section className="glass rounded-3xl p-6 h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+            <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="font-semibold text-white">API Usage</h2>
+            <p className="text-xs text-slate-500">Token consumption & costs</p>
+          </div>
+        </div>
       </div>
 
-      {/* Period selector */}
-      <div className="flex gap-1 mb-4 p-1 bg-slate-900/50 rounded-lg">
-        {periods.map((p) => (
+      {/* Period tabs */}
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] mb-6">
+        {PERIODS.map(({ key, label }) => (
           <button
-            key={p.key}
-            onClick={() => handlePeriodChange(p.key)}
-            className={`flex-1 px-2 py-1.5 text-[10px] font-medium rounded-md transition-colors ${
-              selectedPeriod === p.key
-                ? "bg-slate-700 text-white"
+            key={key}
+            onClick={() => setActivePeriod(key)}
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+              activePeriod === key
+                ? "bg-white/10 text-white shadow-sm"
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            {p.label}
+            {label}
           </button>
         ))}
       </div>
 
+      {/* Content */}
       {loading ? (
-        <div className="text-xs text-slate-500">Loading...</div>
+        <div className="flex items-center justify-center h-32">
+          <div className="w-8 h-8 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+        </div>
       ) : error ? (
-        <div className="text-xs text-red-400">{error}</div>
-      ) : usage ? (
-        <>
-          <div className="space-y-0">
-            {usage.providers.map((provider) => (
-              <ProviderRow key={provider.id} provider={provider} />
-            ))}
+        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-300">
+          {error}
+        </div>
+      ) : currentUsage ? (
+        <div className="grid grid-cols-2 gap-4">
+          {/* Cost - Featured */}
+          <div className="col-span-2 p-5 rounded-2xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Cost</p>
+                <p className="text-3xl font-bold text-gradient-brand">{formatCost(currentUsage.totalCost)}</p>
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center">
+                <svg className="w-7 h-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-700 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Total ({usage.period})</span>
-            <span className="text-sm font-semibold text-slate-100">{formatCost(usage.totalCost)}</span>
+
+          {/* Input Tokens */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Input Tokens</p>
+            <p className="text-xl font-semibold text-blue-400">{formatNumber(currentUsage.inputTokens)}</p>
           </div>
-        </>
-      ) : null}
+
+          {/* Output Tokens */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Output Tokens</p>
+            <p className="text-xl font-semibold text-emerald-400">{formatNumber(currentUsage.outputTokens)}</p>
+          </div>
+
+          {/* Sessions */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Sessions</p>
+            <p className="text-xl font-semibold text-amber-400">{currentUsage.sessions}</p>
+          </div>
+
+          {/* Response Time */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Avg Response</p>
+            <p className="text-xl font-semibold text-slate-300">
+              {currentUsage.avgResponseTime ? `${currentUsage.avgResponseTime}ms` : "—"}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 text-slate-500 text-sm">No usage data available</div>
+      )}
     </section>
   );
 }
