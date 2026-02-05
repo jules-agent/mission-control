@@ -1,27 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { StatusCard } from "./StatusCard";
 import type { StatusEntry } from "./types";
 
 const REFRESH_INTERVAL = 60000;
+
+const statusStyles: Record<StatusEntry["status"], { color: string; bg: string }> = {
+  operational: { color: "text-emerald-400", bg: "bg-emerald-400" },
+  degraded: { color: "text-amber-400", bg: "bg-amber-400" },
+  down: { color: "text-red-400", bg: "bg-red-400" },
+  pending: { color: "text-amber-400", bg: "bg-amber-400" }
+};
 
 export function StatusPanel() {
   const [statuses, setStatuses] = useState<StatusEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastSync, setLastSync] = useState<string | null>(null);
 
   const fetchStatuses = useCallback(async () => {
     try {
       setError(null);
       const response = await fetch("/api/status", { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("Failed to load status data.");
-      }
+      if (!response.ok) throw new Error("Failed to load status data.");
       const data = (await response.json()) as { statuses: StatusEntry[] };
       setStatuses(data.statuses);
-      setLastSync(new Date().toLocaleTimeString());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error.");
     } finally {
@@ -36,36 +38,38 @@ export function StatusPanel() {
   }, [fetchStatuses]);
 
   return (
-    <section className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-xl shadow-slate-950/40">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="font-monoDisplay text-xl text-slate-100">System Status</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            Live telemetry snapshot {lastSync ? `· synced ${lastSync}` : ""}
-          </p>
-        </div>
+    <section className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 shadow-xl shadow-slate-950/40">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-monoDisplay text-sm text-slate-100">System Status</h2>
         <button
           type="button"
           onClick={fetchStatuses}
-          className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
+          className="text-[10px] text-slate-500 hover:text-slate-300"
         >
           Refresh
         </button>
       </div>
 
       {loading ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-6 text-sm text-slate-400">
-          Initializing status feeds...
-        </div>
+        <div className="text-xs text-slate-500">Loading...</div>
       ) : error ? (
-        <div className="mt-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-sm text-red-200">
-          {error}
-        </div>
+        <div className="text-xs text-red-400">{error}</div>
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {statuses.map((status) => (
-            <StatusCard key={status.id} {...status} />
-          ))}
+        <div className="space-y-0">
+          {statuses.map((status) => {
+            const style = statusStyles[status.status];
+            return (
+              <div key={status.id} className="flex items-center justify-between py-2 border-b border-slate-800/50 last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className={`h-1.5 w-1.5 rounded-full ${style.bg}`} />
+                  <span className="text-xs text-slate-300">{status.service}</span>
+                </div>
+                <span className={`text-[10px] ${style.color}`}>
+                  {status.status === "operational" ? "OK" : status.status}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
