@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "./api/auth/auth-options";
-import { DashboardHeader } from "./components/DashboardHeader";
+import { SpaceXHeader } from "./components/SpaceXHeader";
 import { StatusPanel } from "./components/StatusPanel";
 import { TasksPanel } from "./components/TasksPanel";
 import { ModelWorkflowPanel } from "./components/ModelWorkflowPanel";
@@ -14,9 +14,10 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="min-h-screen px-6 py-10">
+    <main className="min-h-screen px-6 py-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <DashboardHeader />
+        {/* SpaceX-style Mission Control header */}
+        <SpaceXHeader />
         
         {/* Model workflow - full width row */}
         <ModelWorkflowPanel />
