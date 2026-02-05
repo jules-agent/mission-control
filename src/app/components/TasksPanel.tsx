@@ -76,6 +76,22 @@ export function TasksPanel() {
   };
 
   const handleMove = async (taskId: string, direction: "up" | "down") => {
+    // Optimistic update
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+    
+    const newIndex = direction === "up" 
+      ? Math.max(0, taskIndex - 1)
+      : Math.min(tasks.length - 1, taskIndex + 1);
+    
+    if (newIndex !== taskIndex) {
+      const reordered = [...tasks];
+      const [moved] = reordered.splice(taskIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+      setTasks(reordered);
+    }
+
+    // Persist to API
     const response = await fetch("/api/tasks", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -88,6 +104,18 @@ export function TasksPanel() {
   };
 
   const handleReorder = async (activeId: string, overId: string) => {
+    // Optimistic update - reorder immediately in UI
+    const oldIndex = tasks.findIndex(t => t.id === activeId);
+    const newIndex = tasks.findIndex(t => t.id === overId);
+    
+    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+      const reordered = [...tasks];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+      setTasks(reordered);
+    }
+
+    // Then persist to API
     const response = await fetch("/api/tasks", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
