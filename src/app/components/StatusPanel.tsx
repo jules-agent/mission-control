@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { StatusEntry } from "./types";
+type StatusEntry = {
+  id: string;
+  service: string;
+  status: "operational" | "degraded" | "down" | "pending";
+  latencyMs?: number;
+  lastChecked: string;
+  error?: string;
+};
 
 const REFRESH_INTERVAL = 60000;
 
@@ -66,6 +73,9 @@ export function StatusPanel() {
                 </div>
                 <span className={`text-[10px] ${style.color}`}>
                   {status.status === "operational" ? "OK" : status.status}
+                  {status.latencyMs !== undefined && (
+                    <span className="text-slate-500 ml-1">({status.latencyMs}ms)</span>
+                  )}
                 </span>
               </div>
             );
