@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 type UsageData = {
   inputTokens: number;
@@ -9,6 +10,7 @@ type UsageData = {
   cacheWriteTokens?: number;
   totalCost: number;
   messages: number;
+  chartData?: { label: string; cost: number }[];
 };
 
 type Period = "today" | "week" | "month" | "total";
@@ -17,6 +19,18 @@ function formatNumber(num: number): string {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
   if (num >= 1000) return (num / 1000).toFixed(1) + "K";
   return num.toString();
+}
+
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900/95 border border-white/10 rounded px-2 py-1 text-[10px]">
+        <p className="text-slate-400">{label}</p>
+        <p className="text-emerald-400 font-semibold">${payload[0].value.toFixed(2)}</p>
+      </div>
+    );
+  }
+  return null;
 }
 
 export function ApiUsagePanel() {
@@ -44,6 +58,7 @@ export function ApiUsagePanel() {
   }, [fetchUsage]);
 
   const currentUsage = usage?.[activePeriod];
+  const chartData = currentUsage?.chartData || [];
 
   return (
     <section className="glass rounded-xl p-3 h-full">
@@ -71,30 +86,57 @@ export function ApiUsagePanel() {
       {loading ? (
         <div className="text-xs text-slate-500">Loading...</div>
       ) : currentUsage ? (
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-slate-800/40 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 uppercase">Cost</div>
-            <div className="text-lg font-bold text-emerald-400">${currentUsage.totalCost.toFixed(2)}</div>
-          </div>
-          <div className="bg-slate-800/40 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 uppercase">Messages</div>
-            <div className="text-lg font-bold text-cyan-400">{currentUsage.messages}</div>
-          </div>
-          <div className="bg-slate-800/40 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 uppercase">Output</div>
-            <div className="text-lg font-bold text-violet-400">{formatNumber(currentUsage.outputTokens)}</div>
-          </div>
-          <div className="bg-slate-800/40 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 uppercase">Input</div>
-            <div className="text-sm font-semibold text-slate-300">{formatNumber(currentUsage.inputTokens)}</div>
-          </div>
-          <div className="bg-slate-800/40 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 uppercase">Cache Read</div>
-            <div className="text-sm font-semibold text-slate-300">{formatNumber(currentUsage.cacheReadTokens || 0)}</div>
-          </div>
-          <div className="bg-slate-800/40 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 uppercase">Cache Write</div>
-            <div className="text-sm font-semibold text-slate-300">{formatNumber(currentUsage.cacheWriteTokens || 0)}</div>
+        <div className="space-y-2">
+          {/* Chart */}
+          {chartData.length > 0 && (
+            <div className="h-20 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis 
+                    dataKey="label" 
+                    tick={{ fontSize: 9, fill: '#64748b' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 9, fill: '#64748b' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `$${v}`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="cost" 
+                    stroke="#10b981" 
+                    strokeWidth={2}
+                    fill="url(#costGradient)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-slate-800/40 rounded-lg p-2">
+              <div className="text-[10px] text-slate-500 uppercase">Cost</div>
+              <div className="text-lg font-bold text-emerald-400">${currentUsage.totalCost.toFixed(2)}</div>
+            </div>
+            <div className="bg-slate-800/40 rounded-lg p-2">
+              <div className="text-[10px] text-slate-500 uppercase">Messages</div>
+              <div className="text-lg font-bold text-cyan-400">{currentUsage.messages}</div>
+            </div>
+            <div className="bg-slate-800/40 rounded-lg p-2">
+              <div className="text-[10px] text-slate-500 uppercase">Output</div>
+              <div className="text-lg font-bold text-violet-400">{formatNumber(currentUsage.outputTokens)}</div>
+            </div>
           </div>
         </div>
       ) : (
