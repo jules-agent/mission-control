@@ -1,0 +1,25 @@
+{
+  "lastUpdated": "2026-02-05T21:42:26Z",
+  "totalMessages": 569,
+  "totals": {
+    "inputTokens": 3794,
+    "outputTokens": 143988,
+    "cacheReadTokens": 46411621,
+    "cacheWriteTokens": 2763129,
+    "cost": 44.09
+  },
+  "hourlyData": [
+    {
+      "hour": "2026-02-05T19",
+      "cost": 6.21
+    },
+    {
+      "hour": "2026-02-05T20",
+      "cost": 18.97
+    },
+    {
+      "hour": "2026-02-05T21",
+      "cost": 18.91
+    }
+  ]
+}
