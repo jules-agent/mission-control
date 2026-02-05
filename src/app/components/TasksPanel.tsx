@@ -128,47 +128,39 @@ export function TasksPanel() {
   };
 
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 shadow-xl shadow-slate-950/40">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="font-monoDisplay text-xl text-slate-100">Mission Tasks</h2>
-          <p className="mt-1 text-xs text-slate-400">Track mission-critical tasks and execution state.</p>
+    <section className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 shadow-xl shadow-slate-950/40">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <h2 className="font-medium text-white text-sm">Tasks</h2>
+          <div className="flex gap-1">
+            {FILTERS.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setFilter(item)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                  filter === item ? "bg-white/10 text-white" : "text-slate-500 hover:text-white"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
         <button
           type="button"
           onClick={() => setFormOpen(true)}
-          className="rounded-full bg-status-green px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-green-400"
+          className="rounded bg-emerald-500/20 text-emerald-400 px-2 py-1 text-[10px] font-medium hover:bg-emerald-500/30"
         >
-          Add Task
+          + Add
         </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {FILTERS.map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setFilter(item)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-              filter === item
-                ? "bg-slate-100 text-slate-900"
-                : "border border-slate-800 text-slate-300 hover:border-slate-600"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-6">
+      <div>
         {loading ? (
-          <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-6 text-sm text-slate-400">
-            Fetching mission queue...
-          </div>
+          <div className="rounded-lg bg-slate-900/40 p-3 text-xs text-slate-500">Loading...</div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-sm text-red-200">
-            {error}
-          </div>
+          <div className="rounded-lg bg-red-500/10 p-3 text-xs text-red-300">{error}</div>
         ) : (
           <TaskList tasks={filteredTasks} onComplete={handleComplete} onDelete={handleDelete} onMove={handleMove} onReorder={handleReorder} />
         )}

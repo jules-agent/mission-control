@@ -3,121 +3,27 @@
 import { useState, useEffect } from 'react';
 import { Clock, Calendar, Repeat, Bell, Zap, RefreshCw } from 'lucide-react';
 
-interface ScheduledJob {
-  id: string;
-  name: string;
-  schedule: {
-    kind: 'cron' | 'every' | 'at';
-    expr?: string;
-    everyMs?: number;
-    atMs?: number;
-    tz?: string;
-  };
-  enabled?: boolean;
-  state?: {
-    nextRunAtMs?: number;
-    lastRunAtMs?: number;
-    lastStatus?: string;
-  };
-}
-
-// Hardcoded jobs based on actual cron configuration
-const SCHEDULED_JOBS: ScheduledJob[] = [
-  {
-    id: '1',
-    name: 'Morning Briefing',
-    schedule: { kind: 'cron', expr: '45 6 * * *', tz: 'America/Los_Angeles' },
-    enabled: true,
-    state: { nextRunAtMs: Date.now() + 16 * 60 * 60 * 1000 }
-  },
-  {
-    id: '2', 
-    name: 'Daily Report',
-    schedule: { kind: 'cron', expr: '0 6 * * *', tz: 'America/Los_Angeles' },
-    enabled: true,
-    state: { nextRunAtMs: Date.now() + 15 * 60 * 60 * 1000 }
-  },
-  {
-    id: '3',
-    name: 'Lunch Reminder',
-    schedule: { kind: 'cron', expr: '0 8 * * 1-5', tz: 'America/Los_Angeles' },
-    enabled: true,
-    state: { nextRunAtMs: Date.now() + 17 * 60 * 60 * 1000 }
-  },
-  {
-    id: '4',
-    name: 'Hourly Heartbeat',
-    schedule: { kind: 'cron', expr: '0 5-23,0 * * *', tz: 'America/Los_Angeles' },
-    enabled: true,
-    state: { lastRunAtMs: Date.now() - 30 * 60 * 1000, nextRunAtMs: Date.now() + 30 * 60 * 1000 }
-  },
-  {
-    id: '5',
-    name: 'Usage Data Sync',
-    schedule: { kind: 'every', everyMs: 300000 },
-    enabled: true,
-    state: { lastRunAtMs: Date.now() - 2 * 60 * 1000, nextRunAtMs: Date.now() + 3 * 60 * 1000 }
-  },
-  {
-    id: '6',
-    name: 'Task Review',
-    schedule: { kind: 'every', everyMs: 14400000 },
-    enabled: true,
-    state: { nextRunAtMs: Date.now() + 2 * 60 * 60 * 1000 }
-  },
+const SCHEDULED_JOBS = [
+  { id: '1', name: 'Usage Sync', schedule: 'Every 15m', next: '10m' },
+  { id: '2', name: 'Heartbeat', schedule: 'Hourly', next: '25m' },
+  { id: '3', name: 'Task Review', schedule: 'Every 4h', next: '2h' },
+  { id: '4', name: 'Morning Brief', schedule: '6:45am', next: '15h' },
+  { id: '5', name: 'Lunch Reminder', schedule: '8am M-F', next: '16h' },
 ];
 
 const HEARTBEAT_TASKS = [
-  'Service status checks',
-  'Unread emails scan',
-  'Calendar events (next 2h)',
-  'News scan (Tesla/EV/JDM)',
-  'API cost monitoring',
+  'Status checks',
+  'Email scan',
+  'Calendar (2h)',
+  'News scan',
+  'Cost monitor',
 ];
 
-function formatSchedule(schedule: ScheduledJob['schedule']): string {
-  if (schedule.kind === 'cron') {
-    const expr = schedule.expr || '';
-    // Parse common patterns
-    if (expr.includes('6 * * *')) return '6:00 AM daily';
-    if (expr.includes('45 6')) return '6:45 AM daily';
-    if (expr.includes('8 * * 1-5')) return '8:00 AM weekdays';
-    if (expr.includes('5-23,0')) return 'Hourly (5am-1am)';
-    return expr;
-  }
-  if (schedule.kind === 'every') {
-    const mins = (schedule.everyMs || 0) / 60000;
-    if (mins >= 60) return `Every ${mins / 60}h`;
-    return `Every ${mins}m`;
-  }
-  if (schedule.kind === 'at' && schedule.atMs) {
-    return new Date(schedule.atMs).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  }
-  return 'Unknown';
-}
-
-function formatTimeUntil(ms: number): string {
-  const diff = ms - Date.now();
-  if (diff < 0) return 'overdue';
-  if (diff < 60000) return '<1m';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
-  return `${Math.floor(diff / 86400000)}d`;
-}
-
-function getScheduleIcon(kind: string) {
-  switch (kind) {
-    case 'cron': return <Calendar className="w-3.5 h-3.5" />;
-    case 'every': return <Repeat className="w-3.5 h-3.5" />;
-    case 'at': return <Bell className="w-3.5 h-3.5" />;
-    default: return <Clock className="w-3.5 h-3.5" />;
-  }
-}
+const ONE_TIME = [
+  { name: 'Google Voice', when: '3pm today' },
+  { name: 'Flowers followup', when: '5pm today' },
+  { name: "Maggie's bday", when: 'Feb 8' },
+];
 
 export function AutomationPanel() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -127,55 +33,29 @@ export function AutomationPanel() {
     return () => clearInterval(interval);
   }, []);
 
-  // Sort jobs by next run time
-  const sortedJobs = [...SCHEDULED_JOBS].sort((a, b) => {
-    const aNext = a.state?.nextRunAtMs || Infinity;
-    const bNext = b.state?.nextRunAtMs || Infinity;
-    return aNext - bNext;
-  });
-
   return (
-    <div className="glass-panel p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <Zap className="w-5 h-5 text-yellow-400" />
-          <div>
-            <h2 className="text-lg font-semibold text-white">Automation Schedule</h2>
-            <p className="text-xs text-slate-400">Scheduled jobs & heartbeat tasks</p>
-          </div>
+    <div className="glass-panel p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-yellow-400" />
+          <h2 className="font-medium text-white text-sm">Automation</h2>
         </div>
-        <div className="text-xs text-slate-500">
+        <div className="text-[10px] text-slate-500">
           {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} PST
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-3">
         {/* Scheduled Jobs */}
         <div>
-          <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
-            Scheduled Jobs
-          </h3>
-          <div className="space-y-1.5">
-            {sortedJobs.map((job) => (
-              <div
-                key={job.id}
-                className="flex items-center justify-between py-1.5 px-2 rounded bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`${job.enabled !== false ? 'text-cyan-400' : 'text-slate-600'}`}>
-                    {getScheduleIcon(job.schedule.kind)}
-                  </span>
-                  <span className={`text-sm ${job.enabled !== false ? 'text-slate-200' : 'text-slate-500'}`}>
-                    {job.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-slate-500">{formatSchedule(job.schedule)}</span>
-                  {job.state?.nextRunAtMs && (
-                    <span className="text-cyan-400 font-mono min-w-[3ch] text-right">
-                      {formatTimeUntil(job.state.nextRunAtMs)}
-                    </span>
-                  )}
+          <h3 className="text-[10px] font-medium text-slate-500 uppercase mb-1">Scheduled</h3>
+          <div className="space-y-0.5">
+            {SCHEDULED_JOBS.map((job) => (
+              <div key={job.id} className="flex items-center justify-between py-1 px-1.5 rounded bg-slate-800/30 text-xs">
+                <span className="text-slate-300 truncate">{job.name}</span>
+                <div className="flex items-center gap-2 text-[10px]">
+                  <span className="text-slate-500">{job.schedule}</span>
+                  <span className="text-cyan-400 font-mono">{job.next}</span>
                 </div>
               </div>
             ))}
@@ -184,23 +64,31 @@ export function AutomationPanel() {
 
         {/* Heartbeat Tasks */}
         <div>
-          <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
-            Heartbeat Checks
-          </h3>
-          <div className="space-y-1.5">
+          <h3 className="text-[10px] font-medium text-slate-500 uppercase mb-1">Heartbeat</h3>
+          <div className="space-y-0.5">
             {HEARTBEAT_TASKS.map((task, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 py-1.5 px-2 rounded bg-slate-800/30"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-sm text-slate-300">{task}</span>
+              <div key={i} className="flex items-center gap-1.5 py-1 px-1.5 rounded bg-slate-800/30 text-xs">
+                <RefreshCw className="w-3 h-3 text-emerald-400" />
+                <span className="text-slate-300">{task}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500 mt-2 italic">
-            Runs hourly 5am-1am PST via HEARTBEAT.md
-          </p>
+        </div>
+
+        {/* One-time Reminders */}
+        <div>
+          <h3 className="text-[10px] font-medium text-slate-500 uppercase mb-1">Reminders</h3>
+          <div className="space-y-0.5">
+            {ONE_TIME.map((item, i) => (
+              <div key={i} className="flex items-center justify-between py-1 px-1.5 rounded bg-slate-800/30 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <Bell className="w-3 h-3 text-amber-400" />
+                  <span className="text-slate-300 truncate">{item.name}</span>
+                </div>
+                <span className="text-[10px] text-slate-500">{item.when}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
