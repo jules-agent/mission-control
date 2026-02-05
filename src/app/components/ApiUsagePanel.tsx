@@ -15,6 +15,7 @@ type UsageData = {
   providers: ApiProvider[];
   totalCost: number;
   period: string;
+  lastUpdated?: string;
 };
 
 const REFRESH_INTERVAL = 60000;
@@ -81,7 +82,9 @@ export function ApiUsagePanel() {
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-monoDisplay text-sm text-slate-100">API Usage</h2>
         {usage && (
-          <span className="text-[10px] text-slate-500">{usage.period}</span>
+          <span className="text-[10px] text-slate-500">
+            {usage.period} · {usage.lastUpdated || "syncing..."}
+          </span>
         )}
       </div>
 

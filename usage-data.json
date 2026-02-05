@@ -1,0 +1,42 @@
+{
+  "lastUpdated": "2026-02-05T19:41:00.000Z",
+  "period": "Today",
+  "providers": [
+    {
+      "id": "anthropic",
+      "name": "Anthropic (Opus)",
+      "requests": 12,
+      "tokens": { "input": 145000, "output": 18500 },
+      "cost": 6.85,
+      "status": "active",
+      "pricing": { "inputPer1M": 15, "outputPer1M": 75 }
+    },
+    {
+      "id": "nvidia-kimi",
+      "name": "NVIDIA (Kimi K2.5)",
+      "requests": 47,
+      "tokens": { "input": 420000, "output": 65000 },
+      "cost": 0.00,
+      "status": "active",
+      "pricing": { "inputPer1M": 0, "outputPer1M": 0, "note": "Free tier" }
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI (Embeddings)",
+      "requests": 156,
+      "tokens": { "input": 89000, "output": 0 },
+      "cost": 0.02,
+      "status": "active",
+      "pricing": { "inputPer1M": 0.13, "outputPer1M": 0, "note": "text-embedding-3-small" }
+    },
+    {
+      "id": "brave",
+      "name": "Brave Search",
+      "requests": 8,
+      "tokens": { "input": 0, "output": 0 },
+      "cost": 0.00,
+      "status": "error",
+      "pricing": { "note": "API key invalid" }
+    }
+  ]
+}
