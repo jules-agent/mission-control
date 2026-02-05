@@ -4,6 +4,7 @@ import { authOptions } from "./api/auth/auth-options";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { StatusPanel } from "./components/StatusPanel";
 import { TasksPanel } from "./components/TasksPanel";
+import { ModelWorkflowPanel } from "./components/ModelWorkflowPanel";
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -13,13 +14,16 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen px-6 py-10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <DashboardHeader />
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="lg:w-1/2">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div>
             <StatusPanel />
           </div>
-          <div className="lg:w-1/2">
+          <div>
+            <ModelWorkflowPanel />
+          </div>
+          <div>
             <TasksPanel />
           </div>
         </div>
