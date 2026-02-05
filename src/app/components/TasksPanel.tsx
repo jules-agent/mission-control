@@ -87,6 +87,18 @@ export function TasksPanel() {
     }
   };
 
+  const handleReorder = async (activeId: string, overId: string) => {
+    const response = await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: activeId, moveToId: overId })
+    });
+    if (response.ok) {
+      const data = (await response.json()) as { tasks: TaskEntry[] };
+      setTasks(data.tasks);
+    }
+  };
+
   return (
     <section className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-xl shadow-slate-950/40">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -130,7 +142,7 @@ export function TasksPanel() {
             {error}
           </div>
         ) : (
-          <TaskList tasks={filteredTasks} onComplete={handleComplete} onDelete={handleDelete} onMove={handleMove} />
+          <TaskList tasks={filteredTasks} onComplete={handleComplete} onDelete={handleDelete} onMove={handleMove} onReorder={handleReorder} />
         )}
       </div>
 

@@ -62,6 +62,7 @@ export async function PATCH(request: Request) {
     description?: string;
     priority?: TaskEntry["priority"];
     moveDirection?: "up" | "down";
+    moveToId?: string; // For drag-and-drop: move 'id' to position of 'moveToId'
   };
   
   let tasks = await readTasks();
@@ -71,8 +72,16 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
-  // Handle move up/down
-  if (body.moveDirection) {
+  // Handle drag-and-drop reorder
+  if (body.moveToId) {
+    const targetIndex = tasks.findIndex(t => t.id === body.moveToId);
+    if (targetIndex !== -1 && targetIndex !== taskIndex) {
+      const [task] = tasks.splice(taskIndex, 1);
+      tasks.splice(targetIndex, 0, task);
+    }
+  }
+  // Handle move up/down buttons
+  else if (body.moveDirection) {
     const newIndex = body.moveDirection === "up" 
       ? Math.max(0, taskIndex - 1)
       : Math.min(tasks.length - 1, taskIndex + 1);
@@ -81,8 +90,9 @@ export async function PATCH(request: Request) {
       const [task] = tasks.splice(taskIndex, 1);
       tasks.splice(newIndex, 0, task);
     }
-  } else {
-    // Update task fields
+  } 
+  // Update task fields
+  else {
     tasks[taskIndex] = {
       ...tasks[taskIndex],
       ...(body.status && { status: body.status }),
