@@ -7,9 +7,10 @@ type UsageData = {
   period: string;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
   totalCost: number;
-  sessions: number;
-  avgResponseTime?: number;
+  messages: number;
   chartData: { label: string; cost: number }[];
 };
 
@@ -49,7 +50,8 @@ export function ApiUsagePanel() {
   const [usage, setUsage] = useState<Record<Period, UsageData> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activePeriod, setActivePeriod] = useState<Period>("week");
+  const [activePeriod, setActivePeriod] = useState<Period>("total");
+  const [source, setSource] = useState<string>("");
 
   const fetchUsage = useCallback(async () => {
     try {
@@ -58,6 +60,7 @@ export function ApiUsagePanel() {
       if (!response.ok) throw new Error("Failed to load usage data.");
       const data = await response.json();
       setUsage(data.usage);
+      setSource(data.source || "unknown");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error.");
     } finally {
@@ -67,7 +70,7 @@ export function ApiUsagePanel() {
 
   useEffect(() => {
     fetchUsage();
-    const interval = setInterval(fetchUsage, 60000);
+    const interval = setInterval(fetchUsage, 30000); // Refresh every 30s
     return () => clearInterval(interval);
   }, [fetchUsage]);
 
@@ -85,9 +88,16 @@ export function ApiUsagePanel() {
           </div>
           <div>
             <h2 className="font-semibold text-white">API Usage</h2>
-            <p className="text-xs text-slate-500">Token consumption & costs</p>
+            <p className="text-xs text-slate-500">
+              {source === "openclaw-session" ? "Live from OpenClaw" : "Token consumption & costs"}
+            </p>
           </div>
         </div>
+        {source === "openclaw-session" && (
+          <span className="px-2 py-0.5 rounded text-[9px] font-medium uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            REAL DATA
+          </span>
+        )}
       </div>
 
       {/* Period tabs */}
@@ -125,77 +135,84 @@ export function ApiUsagePanel() {
                 <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Cost</p>
                 <p className="text-2xl font-bold text-gradient-brand">{formatCost(currentUsage.totalCost)}</p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="text-right">
+                <p className="text-xs text-slate-500 mb-1">{currentUsage.messages} messages</p>
+                <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
               </div>
             </div>
             
             {/* Chart */}
-            <div className="h-24 mt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={currentUsage.chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis 
-                    dataKey="label" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#64748b', fontSize: 10 }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#64748b', fontSize: 10 }}
-                    tickFormatter={(v) => `$${v}`}
-                    width={40}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="cost" 
-                    stroke="#8b5cf6" 
-                    strokeWidth={2}
-                    fill="url(#costGradient)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {currentUsage.chartData && currentUsage.chartData.length > 0 && (
+              <div className="h-20 mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={currentUsage.chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="label" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#64748b', fontSize: 9 }}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#64748b', fontSize: 9 }}
+                      tickFormatter={(v) => `$${v}`}
+                      width={35}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area 
+                      type="monotone" 
+                      dataKey="cost" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={2}
+                      fill="url(#costGradient)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
 
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3">
+            {/* Output Tokens (primary) */}
+            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Output Tokens</p>
+              <p className="text-lg font-semibold text-emerald-400">{formatNumber(currentUsage.outputTokens)}</p>
+            </div>
+
             {/* Input Tokens */}
             <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
               <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Input Tokens</p>
               <p className="text-lg font-semibold text-blue-400">{formatNumber(currentUsage.inputTokens)}</p>
             </div>
 
-            {/* Output Tokens */}
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Output Tokens</p>
-              <p className="text-lg font-semibold text-emerald-400">{formatNumber(currentUsage.outputTokens)}</p>
-            </div>
+            {/* Cache Read */}
+            {currentUsage.cacheReadTokens !== undefined && currentUsage.cacheReadTokens > 0 && (
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Cache Read</p>
+                <p className="text-lg font-semibold text-cyan-400">{formatNumber(currentUsage.cacheReadTokens)}</p>
+              </div>
+            )}
 
-            {/* Sessions */}
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Sessions</p>
-              <p className="text-lg font-semibold text-amber-400">{currentUsage.sessions}</p>
-            </div>
-
-            {/* Response Time */}
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Avg Response</p>
-              <p className="text-lg font-semibold text-slate-300">
-                {currentUsage.avgResponseTime ? `${currentUsage.avgResponseTime}ms` : "—"}
-              </p>
-            </div>
+            {/* Cache Write */}
+            {currentUsage.cacheWriteTokens !== undefined && currentUsage.cacheWriteTokens > 0 && (
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Cache Write</p>
+                <p className="text-lg font-semibold text-amber-400">{formatNumber(currentUsage.cacheWriteTokens)}</p>
+              </div>
+            )}
           </div>
         </div>
       ) : (

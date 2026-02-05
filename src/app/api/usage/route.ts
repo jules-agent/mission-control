@@ -1,73 +1,104 @@
 import { NextResponse } from "next/server";
+import { promises as fs } from "fs";
+import path from "path";
 
 type UsageData = {
   period: string;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
   totalCost: number;
-  sessions: number;
-  avgResponseTime?: number;
+  messages: number;
   chartData: { label: string; cost: number }[];
 };
 
 type Period = "today" | "week" | "month" | "total";
 
-// Generate chart data based on period
-function generateChartData(period: Period): { label: string; cost: number }[] {
+type RawUsageData = {
+  lastUpdated: string;
+  totalMessages: number;
+  totals: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens: number;
+    cacheWriteTokens: number;
+    cost: number;
+  };
+  hourlyData: { hour: string; cost: number }[];
+};
+
+async function getUsageData(): Promise<RawUsageData | null> {
+  try {
+    // Try to read from the synced usage data file
+    const filePath = path.join(process.cwd(), "public", "usage-data.json");
+    const content = await fs.readFile(filePath, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
+function generateChartData(
+  period: Period,
+  hourlyData: { hour: string; cost: number }[]
+): { label: string; cost: number }[] {
   const now = new Date();
+  
+  // Sort hourly data by timestamp (oldest first) to ensure correct order
+  const sortedData = [...hourlyData].sort((a, b) => a.hour.localeCompare(b.hour));
   
   switch (period) {
     case "today": {
-      // Hourly data for today (last 12 hours)
-      const hours: { label: string; cost: number }[] = [];
-      for (let i = 11; i >= 0; i--) {
-        const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
-        const h = hour.getHours();
-        const label = h === 0 ? "12am" : h < 12 ? `${h}am` : h === 12 ? "12pm" : `${h - 12}pm`;
-        // Simulate varying costs throughout the day
-        const baseCost = 0.15 + Math.random() * 0.35;
-        const multiplier = i < 3 ? 1.5 : i < 6 ? 1.2 : 0.8; // Higher costs in recent hours
-        hours.push({ label, cost: Math.round(baseCost * multiplier * 100) / 100 });
-      }
-      return hours;
+      // Show hourly data for today - oldest hour on left, newest on right
+      const todayPrefix = now.toISOString().slice(0, 10);
+      const todayData = sortedData.filter(d => d.hour.startsWith(todayPrefix));
+      
+      // Create hour labels (oldest to newest = left to right)
+      return todayData.map(d => {
+        const hour = parseInt(d.hour.slice(11, 13));
+        const label = hour === 0 ? "12am" : hour < 12 ? `${hour}am` : hour === 12 ? "12pm" : `${hour - 12}pm`;
+        return { label, cost: d.cost };
+      });
     }
     
     case "week": {
-      // Daily data for this week
+      // Show daily data for last 7 days - oldest day on left, newest on right
       const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const dayOfWeek = now.getDay();
       const data: { label: string; cost: number }[] = [];
       
-      for (let i = 6; i >= 0; i--) {
-        const dayIndex = (dayOfWeek - i + 7) % 7;
-        const isToday = i === 0;
-        const baseCost = isToday ? 4.85 : 2 + Math.random() * 3;
-        data.push({ label: days[dayIndex], cost: Math.round(baseCost * 100) / 100 });
+      // Loop from 6 days ago (oldest) to today (newest)
+      for (let daysAgo = 6; daysAgo >= 0; daysAgo--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - daysAgo);
+        const datePrefix = date.toISOString().slice(0, 10);
+        const dayData = sortedData.filter(d => d.hour.startsWith(datePrefix));
+        const dayCost = dayData.reduce((sum, d) => sum + d.cost, 0);
+        data.push({ 
+          label: days[date.getDay()], 
+          cost: Math.round(dayCost * 100) / 100 
+        });
       }
+      // data[0] = 6 days ago (left), data[6] = today (right) ✓
       return data;
     }
     
-    case "month": {
-      // Weekly data for this month
-      const data: { label: string; cost: number }[] = [];
-      for (let i = 3; i >= 0; i--) {
-        const weekLabel = i === 0 ? "This Week" : i === 1 ? "Last Week" : `${i + 1} Weeks Ago`;
-        const baseCost = i === 0 ? 19.40 : 15 + Math.random() * 25;
-        data.push({ label: weekLabel, cost: Math.round(baseCost * 100) / 100 });
-      }
-      return data.reverse();
-    }
-    
+    case "month":
     case "total": {
-      // Monthly data (since we just started, show the current month breakdown)
-      const data: { label: string; cost: number }[] = [];
-      const months = ["Jan", "Feb", "Mar", "Apr"];
-      for (let i = 0; i < 4; i++) {
-        const isCurrentMonth = i === 1; // February
-        const baseCost = isCurrentMonth ? 87.30 : i === 0 ? 0 : 0;
-        data.push({ label: months[i], cost: Math.round(baseCost * 100) / 100 });
+      // Group by day, oldest on left, newest on right
+      const dailyMap = new Map<string, number>();
+      for (const d of sortedData) {
+        const dateKey = d.hour.slice(0, 10);
+        dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + d.cost);
       }
-      return data;
+      
+      // Convert to array sorted by date (oldest first = left)
+      const dates = [...dailyMap.keys()].sort();
+      return dates.slice(-14).map(dateStr => {
+        const date = new Date(dateStr);
+        const label = `${date.getMonth() + 1}/${date.getDate()}`;
+        return { label, cost: Math.round((dailyMap.get(dateStr) || 0) * 100) / 100 };
+      });
     }
     
     default:
@@ -75,64 +106,41 @@ function generateChartData(period: Period): { label: string; cost: number }[] {
   }
 }
 
-// Base usage for today
-const baseUsage = {
-  inputTokens: 125000,
-  outputTokens: 48000,
-  totalCost: 4.85,
-  sessions: 1,
-  avgResponseTime: 2400,
-};
-
-const periodMultipliers: Record<Period, { multiplier: number; sessions: number }> = {
-  today: { multiplier: 1, sessions: 1 },
-  week: { multiplier: 4, sessions: 8 },
-  month: { multiplier: 18, sessions: 35 },
-  total: { multiplier: 18, sessions: 35 },
-};
-
 export async function GET() {
   try {
+    const rawData = await getUsageData();
+    
+    if (!rawData) {
+      return NextResponse.json({ 
+        usage: null,
+        source: "none",
+        error: "No usage data available. Run sync-usage.sh to populate.",
+      });
+    }
+
+    const createUsageData = (periodLabel: string, periodKey: Period): UsageData => ({
+      period: periodLabel,
+      inputTokens: rawData.totals.inputTokens,
+      outputTokens: rawData.totals.outputTokens,
+      cacheReadTokens: rawData.totals.cacheReadTokens,
+      cacheWriteTokens: rawData.totals.cacheWriteTokens,
+      totalCost: rawData.totals.cost,
+      messages: rawData.totalMessages,
+      chartData: generateChartData(periodKey, rawData.hourlyData),
+    });
+
     const usage: Record<Period, UsageData> = {
-      today: {
-        period: "Today",
-        inputTokens: Math.round(baseUsage.inputTokens * periodMultipliers.today.multiplier),
-        outputTokens: Math.round(baseUsage.outputTokens * periodMultipliers.today.multiplier),
-        totalCost: Math.round(baseUsage.totalCost * periodMultipliers.today.multiplier * 100) / 100,
-        sessions: periodMultipliers.today.sessions,
-        avgResponseTime: baseUsage.avgResponseTime,
-        chartData: generateChartData("today"),
-      },
-      week: {
-        period: "This Week",
-        inputTokens: Math.round(baseUsage.inputTokens * periodMultipliers.week.multiplier),
-        outputTokens: Math.round(baseUsage.outputTokens * periodMultipliers.week.multiplier),
-        totalCost: Math.round(baseUsage.totalCost * periodMultipliers.week.multiplier * 100) / 100,
-        sessions: periodMultipliers.week.sessions,
-        avgResponseTime: baseUsage.avgResponseTime,
-        chartData: generateChartData("week"),
-      },
-      month: {
-        period: "This Month",
-        inputTokens: Math.round(baseUsage.inputTokens * periodMultipliers.month.multiplier),
-        outputTokens: Math.round(baseUsage.outputTokens * periodMultipliers.month.multiplier),
-        totalCost: Math.round(baseUsage.totalCost * periodMultipliers.month.multiplier * 100) / 100,
-        sessions: periodMultipliers.month.sessions,
-        avgResponseTime: baseUsage.avgResponseTime,
-        chartData: generateChartData("month"),
-      },
-      total: {
-        period: "All Time",
-        inputTokens: Math.round(baseUsage.inputTokens * periodMultipliers.total.multiplier),
-        outputTokens: Math.round(baseUsage.outputTokens * periodMultipliers.total.multiplier),
-        totalCost: Math.round(baseUsage.totalCost * periodMultipliers.total.multiplier * 100) / 100,
-        sessions: periodMultipliers.total.sessions,
-        avgResponseTime: baseUsage.avgResponseTime,
-        chartData: generateChartData("total"),
-      },
+      today: createUsageData("Today", "today"),
+      week: createUsageData("This Week", "week"),
+      month: createUsageData("This Month", "month"),
+      total: createUsageData("All Time", "total"),
     };
 
-    return NextResponse.json({ usage });
+    return NextResponse.json({ 
+      usage,
+      source: "openclaw-session",
+      lastUpdated: rawData.lastUpdated,
+    });
   } catch (err) {
     console.error("Usage API error:", err);
     return NextResponse.json(
