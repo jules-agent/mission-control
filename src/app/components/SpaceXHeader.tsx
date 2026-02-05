@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LogButton } from "./LogPanel";
 
 export function SpaceXHeader() {
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
@@ -109,6 +110,7 @@ export function SpaceXHeader() {
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-500/20 text-green-400 border border-green-500/30">
                   LIVE
                 </span>
+                <LogButton />
               </div>
               <p className="text-sm text-slate-400 mt-1 font-mono">OPENCLAW-1 • Operations Command Center</p>
             </div>
