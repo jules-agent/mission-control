@@ -1,8 +1,8 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-const AUTH_EMAIL = "ben@unpluggedperformance.com";
-const AUTH_PASSWORD = "MissionControl2026!";
+const AUTH_EMAIL = process.env.AUTH_EMAIL || "ben@unpluggedperformance.com";
+const AUTH_PASSWORD = process.env.AUTH_PASSWORD || "";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
