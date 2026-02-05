@@ -1,0 +1,64 @@
+{
+  "statuses": [
+    {
+      "id": "openclaw-gateway",
+      "service": "OpenClaw Gateway",
+      "status": "operational",
+      "lastChecked": "2026-02-05 09:10"
+    },
+    {
+      "id": "imessage-bridge",
+      "service": "iMessage Bridge",
+      "status": "operational",
+      "lastChecked": "2026-02-05 09:10"
+    },
+    {
+      "id": "brave-search-api",
+      "service": "Brave Search API",
+      "status": "degraded",
+      "lastChecked": "2026-02-05 09:09"
+    },
+    {
+      "id": "openai-api",
+      "service": "OpenAI API",
+      "status": "operational",
+      "lastChecked": "2026-02-05 09:10"
+    },
+    {
+      "id": "anthropic-api",
+      "service": "Anthropic API",
+      "status": "operational",
+      "lastChecked": "2026-02-05 09:10"
+    },
+    {
+      "id": "kimi-api",
+      "service": "Kimi API (NVIDIA)",
+      "status": "operational",
+      "lastChecked": "2026-02-05 09:08"
+    },
+    {
+      "id": "google-voice",
+      "service": "Google Voice",
+      "status": "pending",
+      "lastChecked": "2026-02-05 09:05"
+    },
+    {
+      "id": "supabase-g3-tornado",
+      "service": "Supabase (G3-Tornado)",
+      "status": "operational",
+      "lastChecked": "2026-02-05 09:10"
+    },
+    {
+      "id": "vercel-deployment",
+      "service": "Vercel Deployment",
+      "status": "operational",
+      "lastChecked": "2026-02-05 09:10"
+    },
+    {
+      "id": "github-jules-agent",
+      "service": "GitHub (jules-agent)",
+      "status": "down",
+      "lastChecked": "2026-02-05 09:07"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 min-h-screen;
+  background-image: radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.12) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
