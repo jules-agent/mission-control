@@ -128,7 +128,7 @@ export function TasksPanel() {
   };
 
   return (
-    <section className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-xl shadow-slate-950/40">
+    <section className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 shadow-xl shadow-slate-950/40">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-monoDisplay text-xl text-slate-100">Mission Tasks</h2>

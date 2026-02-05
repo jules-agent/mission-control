@@ -69,7 +69,7 @@ export function StatusPanel() {
   const totalCount = statuses.length;
 
   return (
-    <section className="glass rounded-3xl p-6 h-full">
+    <section className="glass rounded-2xl p-4 h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

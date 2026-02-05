@@ -82,13 +82,13 @@ export function SpaceXHeader() {
       </svg>
 
       {/* Content */}
-      <div className="relative z-10 px-8 py-6">
+      <div className="relative z-10 px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Left - Mission info */}
           <div className="flex items-center gap-6">
             {/* Mission patch / logo - Lobster emblem */}
             <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-blue-500/50 shadow-lg shadow-blue-500/20">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-blue-500/50 shadow-lg shadow-blue-500/20">
                 <img 
                   src="/mission-emblem.png" 
                   alt="Mission Control Emblem"
@@ -133,7 +133,7 @@ export function SpaceXHeader() {
       </div>
 
       {/* Bottom data ticker */}
-      <div className="relative z-10 border-t border-white/5 bg-black/30 px-8 py-2">
+      <div className="relative z-10 border-t border-white/5 bg-black/30 px-6 py-1.5">
         <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 uppercase tracking-wider">
           <span>Tracking: All Systems Nominal</span>
           <span>Downlink: 2.4 Gbps</span>

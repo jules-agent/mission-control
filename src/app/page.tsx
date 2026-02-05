@@ -15,8 +15,8 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="min-h-screen px-6 py-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+    <main className="min-h-screen px-4 py-4">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4">
         {/* SpaceX-style Mission Control header */}
         <SpaceXHeader />
         
@@ -24,7 +24,7 @@ export default async function HomePage() {
         <ModelWorkflowPanel />
         
         {/* API Usage + System Status side by side */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <ApiUsagePanel />
           <StatusPanel />
         </div>

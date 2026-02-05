@@ -135,8 +135,8 @@ export function AutomationPanel() {
   });
 
   return (
-    <div className="glass-panel p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="glass-panel p-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <Zap className="w-5 h-5 text-yellow-400" />
           <div>

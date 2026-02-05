@@ -77,7 +77,7 @@ export function ApiUsagePanel() {
   const currentUsage = usage?.[activePeriod];
 
   return (
-    <section className="glass rounded-3xl p-6 h-full">
+    <section className="glass rounded-2xl p-4 h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
