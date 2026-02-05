@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 type UsageData = {
   period: string;
@@ -9,6 +10,7 @@ type UsageData = {
   totalCost: number;
   sessions: number;
   avgResponseTime?: number;
+  chartData: { label: string; cost: number }[];
 };
 
 type Period = "today" | "week" | "month" | "total";
@@ -28,6 +30,19 @@ function formatNumber(num: number): string {
 
 function formatCost(cost: number): string {
   return "$" + cost.toFixed(2);
+}
+
+// Custom tooltip for the chart
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900/95 border border-white/10 rounded-lg px-3 py-2 text-xs">
+        <p className="text-slate-400">{label}</p>
+        <p className="text-emerald-400 font-semibold">${payload[0].value.toFixed(2)}</p>
+      </div>
+    );
+  }
+  return null;
 }
 
 export function ApiUsagePanel() {
@@ -61,7 +76,7 @@ export function ApiUsagePanel() {
   return (
     <section className="glass rounded-3xl p-6 h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
             <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -76,7 +91,7 @@ export function ApiUsagePanel() {
       </div>
 
       {/* Period tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] mb-6">
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] mb-4">
         {PERIODS.map(({ key, label }) => (
           <button
             key={key}
@@ -94,7 +109,7 @@ export function ApiUsagePanel() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center h-32">
+        <div className="flex items-center justify-center h-48">
           <div className="w-8 h-8 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
         </div>
       ) : error ? (
@@ -102,46 +117,85 @@ export function ApiUsagePanel() {
           {error}
         </div>
       ) : currentUsage ? (
-        <div className="grid grid-cols-2 gap-4">
-          {/* Cost - Featured */}
-          <div className="col-span-2 p-5 rounded-2xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20">
-            <div className="flex items-center justify-between">
+        <div className="space-y-4">
+          {/* Cost + Chart */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20">
+            <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Cost</p>
-                <p className="text-3xl font-bold text-gradient-brand">{formatCost(currentUsage.totalCost)}</p>
+                <p className="text-2xl font-bold text-gradient-brand">{formatCost(currentUsage.totalCost)}</p>
               </div>
-              <div className="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center">
-                <svg className="w-7 h-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
+            
+            {/* Chart */}
+            <div className="h-24 mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={currentUsage.chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis 
+                    dataKey="label" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#64748b', fontSize: 10 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#64748b', fontSize: 10 }}
+                    tickFormatter={(v) => `$${v}`}
+                    width={40}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="cost" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2}
+                    fill="url(#costGradient)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Input Tokens */}
-          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Input Tokens</p>
-            <p className="text-xl font-semibold text-blue-400">{formatNumber(currentUsage.inputTokens)}</p>
-          </div>
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Input Tokens */}
+            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Input Tokens</p>
+              <p className="text-lg font-semibold text-blue-400">{formatNumber(currentUsage.inputTokens)}</p>
+            </div>
 
-          {/* Output Tokens */}
-          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Output Tokens</p>
-            <p className="text-xl font-semibold text-emerald-400">{formatNumber(currentUsage.outputTokens)}</p>
-          </div>
+            {/* Output Tokens */}
+            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Output Tokens</p>
+              <p className="text-lg font-semibold text-emerald-400">{formatNumber(currentUsage.outputTokens)}</p>
+            </div>
 
-          {/* Sessions */}
-          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Sessions</p>
-            <p className="text-xl font-semibold text-amber-400">{currentUsage.sessions}</p>
-          </div>
+            {/* Sessions */}
+            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Sessions</p>
+              <p className="text-lg font-semibold text-amber-400">{currentUsage.sessions}</p>
+            </div>
 
-          {/* Response Time */}
-          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Avg Response</p>
-            <p className="text-xl font-semibold text-slate-300">
-              {currentUsage.avgResponseTime ? `${currentUsage.avgResponseTime}ms` : "—"}
-            </p>
+            {/* Response Time */}
+            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Avg Response</p>
+              <p className="text-lg font-semibold text-slate-300">
+                {currentUsage.avgResponseTime ? `${currentUsage.avgResponseTime}ms` : "—"}
+              </p>
+            </div>
           </div>
         </div>
       ) : (
