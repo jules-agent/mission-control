@@ -1,34 +1,3 @@
 {
-  "tasks": [
-    {
-      "id": "task-001",
-      "title": "Stabilize Brave Search latency",
-      "description": "Review request queue and adjust retry thresholds before peak traffic window.",
-      "priority": "high",
-      "status": "in-progress",
-      "createdAt": "2026-02-05 08:40",
-      "rank": 0,
-      "source": "manual"
-    },
-    {
-      "id": "task-002",
-      "title": "Verify Google Voice number",
-      "description": "Complete pending verification workflow and sync updates to routing map.",
-      "priority": "medium",
-      "status": "todo",
-      "createdAt": "2026-02-05 08:10",
-      "rank": 1,
-      "source": "manual"
-    },
-    {
-      "id": "task-003",
-      "title": "Publish Vercel deployment report",
-      "description": "Ship the latest build notes and confirm rollout metrics with the team.",
-      "priority": "low",
-      "status": "done",
-      "createdAt": "2026-02-04 19:25",
-      "rank": 2,
-      "source": "manual"
-    }
-  ]
+  "tasks": []
 }
