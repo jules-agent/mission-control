@@ -86,33 +86,14 @@ export function SpaceXHeader() {
         <div className="flex items-center justify-between">
           {/* Left - Mission info */}
           <div className="flex items-center gap-6">
-            {/* Mission patch / logo */}
+            {/* Mission patch / logo - Lobster emblem */}
             <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <svg className="w-12 h-12" viewBox="0 0 100 100" fill="none">
-                  {/* Rocket */}
-                  <path d="M50 15 L60 45 L55 50 L55 75 L50 85 L45 75 L45 50 L40 45 Z" 
-                    fill="url(#rocket-gradient)" 
-                    stroke="rgba(255,255,255,0.5)" 
-                    strokeWidth="1"/>
-                  {/* Flames */}
-                  <ellipse cx="50" cy="90" rx="8" ry="6" fill="#f97316" opacity="0.8">
-                    <animate attributeName="ry" values="6;8;6" dur="0.3s" repeatCount="indefinite" />
-                  </ellipse>
-                  <ellipse cx="50" cy="88" rx="4" ry="4" fill="#fbbf24">
-                    <animate attributeName="ry" values="4;6;4" dur="0.2s" repeatCount="indefinite" />
-                  </ellipse>
-                  {/* Orbit ring */}
-                  <ellipse cx="50" cy="50" rx="35" ry="12" fill="none" stroke="rgba(96, 165, 250, 0.5)" strokeWidth="1" strokeDasharray="5 5">
-                    <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50" dur="10s" repeatCount="indefinite"/>
-                  </ellipse>
-                  <defs>
-                    <linearGradient id="rocket-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#e2e8f0"/>
-                      <stop offset="100%" stopColor="#94a3b8"/>
-                    </linearGradient>
-                  </defs>
-                </svg>
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-blue-500/50 shadow-lg shadow-blue-500/20">
+                <img 
+                  src="/mission-emblem.png" 
+                  alt="Mission Control Emblem"
+                  className="w-full h-full object-cover scale-125"
+                />
               </div>
               {/* Live pulse */}
               <span className="absolute -top-1 -right-1 flex h-4 w-4">
