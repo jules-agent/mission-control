@@ -1,84 +1,127 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabase } from '../../../lib/supabase';
 
-const OPENCLAW_GATEWAY = 'http://localhost:4318';
-
-// Get all cron jobs
+// Get all reminders
 export async function GET() {
-  try {
-    const response = await fetch(`${OPENCLAW_GATEWAY}/api/cron/jobs`, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    
-    if (!response.ok) {
-      return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
-    }
-    
-    const data = await response.json();
-    return NextResponse.json({ jobs: data.jobs || [] });
-  } catch (err) {
-    console.error('Failed to fetch cron jobs:', err);
-    return NextResponse.json({ error: 'Gateway unreachable' }, { status: 503 });
+  const supabase = getSupabase();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
   }
+
+  const { data, error } = await supabase
+    .from('reminders')
+    .select('*')
+    .order('due_at', { ascending: true });
+
+  if (error) {
+    console.error('Failed to fetch reminders:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ reminders: data || [] });
 }
 
 // Add a new reminder
 export async function POST(request: NextRequest) {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
+  }
+
   try {
     const body = await request.json();
-    const { name, text, atMs } = body;
-    
-    if (!name || !text || !atMs) {
-      return NextResponse.json({ error: 'Missing required fields: name, text, atMs' }, { status: 400 });
+    const { name, text, due_at, created_by = 'ben' } = body;
+
+    if (!name || !text || !due_at) {
+      return NextResponse.json({ error: 'Missing required fields: name, text, due_at' }, { status: 400 });
     }
-    
-    const job = {
-      name,
-      schedule: { kind: 'at', atMs },
-      payload: { kind: 'systemEvent', text },
-      sessionTarget: 'main',
-    };
-    
-    const response = await fetch(`${OPENCLAW_GATEWAY}/api/cron/jobs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(job),
-    });
-    
-    if (!response.ok) {
-      const err = await response.text();
-      return NextResponse.json({ error: err }, { status: 500 });
+
+    const { data, error } = await supabase
+      .from('reminders')
+      .insert({ name, text, due_at, created_by })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to add reminder:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    
-    const data = await response.json();
-    return NextResponse.json({ success: true, job: data });
+
+    return NextResponse.json({ success: true, reminder: data });
   } catch (err) {
     console.error('Failed to add reminder:', err);
-    return NextResponse.json({ error: 'Gateway unreachable' }, { status: 503 });
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  }
+}
+
+// Update a reminder (mark complete/uncomplete)
+export async function PATCH(request: NextRequest) {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
+  }
+
+  try {
+    const body = await request.json();
+    const { id, completed } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing reminder id' }, { status: 400 });
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (typeof completed === 'boolean') {
+      updates.completed = completed;
+      updates.completed_at = completed ? new Date().toISOString() : null;
+    }
+
+    const { data, error } = await supabase
+      .from('reminders')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to update reminder:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, reminder: data });
+  } catch (err) {
+    console.error('Failed to update reminder:', err);
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 }
 
 // Delete a reminder
 export async function DELETE(request: NextRequest) {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
-    const jobId = searchParams.get('id');
-    
-    if (!jobId) {
-      return NextResponse.json({ error: 'Missing job id' }, { status: 400 });
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing reminder id' }, { status: 400 });
     }
-    
-    const response = await fetch(`${OPENCLAW_GATEWAY}/api/cron/jobs/${jobId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    
-    if (!response.ok) {
-      return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+
+    const { error } = await supabase
+      .from('reminders')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to delete reminder:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Failed to delete reminder:', err);
-    return NextResponse.json({ error: 'Gateway unreachable' }, { status: 503 });
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 }
