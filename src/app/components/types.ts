@@ -15,4 +15,7 @@ export type TaskEntry = {
   priority: TaskPriority;
   status: TaskStatus;
   createdAt: string;
+  rank: number; // Lower = higher priority, displayed at top
+  source?: "manual" | "jules"; // Who created the task
+  updatedAt?: string;
 };

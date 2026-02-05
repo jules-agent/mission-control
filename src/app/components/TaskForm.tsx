@@ -21,7 +21,7 @@ export function TaskForm({ open, onClose, onCreate }: TaskFormProps) {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!title.trim()) return;
-    onCreate({ title, description, priority, status });
+    onCreate({ title, description, priority, status, rank: 0, source: "manual" });
     setTitle("");
     setDescription("");
     setPriority("medium");
