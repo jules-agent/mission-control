@@ -22,13 +22,15 @@ function createSupabaseClient() {
 }
 
 function buildModelsArray(activeModel: string): ModelStatus[] {
-  const isKimi = activeModel.toLowerCase().includes("kimi");
+  const isSonnet = activeModel.toLowerCase().includes("sonnet") || activeModel.toLowerCase().includes("claude-sonnet");
   const isOpus = activeModel.toLowerCase().includes("opus") || activeModel.toLowerCase().includes("claude-opus");
+  const isKimi = activeModel.toLowerCase().includes("kimi");
   const isCodex = activeModel.toLowerCase().includes("codex");
 
   return [
-    { name: "Kimi K2.5", role: "Default / Day-to-Day", icon: "💬", status: isKimi ? "active" : "standby" },
-    { name: "Opus 4.5", role: "Complex Tasks", icon: "🧠", status: isOpus ? "active" : "standby" },
+    { name: "Sonnet 4.5", role: "Primary / Day-to-Day", icon: "🎯", status: isSonnet ? "active" : "standby" },
+    { name: "Opus 4.5", role: "Complex / Fallback", icon: "🧠", status: isOpus ? "active" : "standby" },
+    { name: "Kimi K2.5", role: "Final Fallback", icon: "⬇️", status: isKimi ? "active" : "standby" },
     { name: "Codex CLI", role: "Development", icon: "⚡", status: isCodex ? "active" : "standby" },
   ];
 }

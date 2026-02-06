@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const DEFAULT_MODELS = [
-  { name: "Kimi K2.5", role: "Default / Day-to-Day", icon: "💬", status: "active" as const },
-  { name: "Opus 4.5", role: "Complex Tasks", icon: "🧠", status: "standby" as const },
+  { name: "Sonnet 4.5", role: "Primary / Day-to-Day", icon: "🎯", status: "active" as const },
+  { name: "Opus 4.5", role: "Complex / Fallback", icon: "🧠", status: "standby" as const },
+  { name: "Kimi K2.5", role: "Final Fallback", icon: "⬇️", status: "standby" as const },
   { name: "Codex CLI", role: "Development", icon: "⚡", status: "standby" as const },
 ];
 
@@ -80,9 +81,11 @@ export async function GET() {
         const isOpus = activeModel.toLowerCase().includes("opus") || activeModel.toLowerCase().includes("claude-opus");
         const isCodex = activeModel.toLowerCase().includes("codex");
 
+        const isSonnet = activeModel.toLowerCase().includes("sonnet") || activeModel.toLowerCase().includes("claude-sonnet");
         const models = [
-          { name: "Kimi K2.5", role: "Default / Day-to-Day", icon: "💬", status: isKimi ? "active" as const : "standby" as const },
-          { name: "Opus 4.5", role: "Complex Tasks", icon: "🧠", status: isOpus ? "active" as const : "standby" as const },
+          { name: "Sonnet 4.5", role: "Primary / Day-to-Day", icon: "🎯", status: isSonnet ? "active" as const : "standby" as const },
+          { name: "Opus 4.5", role: "Complex / Fallback", icon: "🧠", status: isOpus ? "active" as const : "standby" as const },
+          { name: "Kimi K2.5", role: "Final Fallback", icon: "⬇️", status: isKimi ? "active" as const : "standby" as const },
           { name: "Codex CLI", role: "Development", icon: "⚡", status: isCodex ? "active" as const : "standby" as const },
         ];
 
