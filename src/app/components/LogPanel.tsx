@@ -5,6 +5,13 @@ import { X, FileText } from 'lucide-react';
 
 // Work log entries - add new entries at the top
 const LOG_ENTRIES = [
+  { date: '2/5/2026', time: '4:35 PM', text: 'Tornado: Adding search box with comma-separated AND logic + fixing color system completely + tornado favicon' },
+  { date: '2/5/2026', time: '4:19 PM', text: 'Generated morning news rap lyrics; AIML music API issues - sent lyrics as text' },
+  { date: '2/5/2026', time: '4:09 PM', text: 'Fixed G3-Tornado row color visibility text/gradient conflicts in dark mode' },
+  { date: '2/5/2026', time: '3:54 PM', text: 'Wrote 1997 NYC boom-bap lyrics for daily news rap; created 6:30am daily cron' },
+  { date: '2/5/2026', time: '3:42 PM', text: 'Diagnosed total model blackout - both Kimi providers had auth failures' },
+  { date: '2/5/2026', time: '3:22 PM', text: 'Regenerated NVIDIA API key; switched session to Kimi K2.5 as primary' },
+  { date: '2/5/2026', time: '3:10 PM', text: 'Reordered model chain: Kimi K2.5 primary, Opus fallback, Gemini Flash last resort' },
   { date: '2/5/2026', time: '2:19 PM', text: 'Maximum density UI update: compact all panels, 2-col status, 3-col automation, inline task filters' },
   { date: '2/5/2026', time: '2:15 PM', text: 'Created new Supabase project "mission-control" for usage data storage' },
   { date: '2/5/2026', time: '1:52 PM', text: 'Updated usage sync cron from 5min to 15min intervals' },
