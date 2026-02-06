@@ -65,10 +65,11 @@ export function ModelWorkflowPanel() {
     };
   }, []);
 
-  // Default models while loading
+  // Default models while loading (Sonnet → Opus → Kimi flow)
   const models = status?.models || [
-    { name: "Kimi K2.5", role: "Default / Day-to-Day", icon: "💬", status: "standby" },
-    { name: "Opus 4.5", role: "Complex Tasks", icon: "🧠", status: "standby" },
+    { name: "Sonnet 4.5", role: "Primary / Day-to-Day", icon: "🎯", status: "standby" },
+    { name: "Opus 4.5", role: "Complex / Fallback", icon: "🧠", status: "standby" },
+    { name: "Kimi K2.5", role: "Final Fallback", icon: "⬇️", status: "standby" },
     { name: "Codex CLI", role: "Development", icon: "⚡", status: "standby" },
   ];
 
@@ -93,7 +94,7 @@ export function ModelWorkflowPanel() {
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {models.map((model) => (
           <div
             key={model.name}
