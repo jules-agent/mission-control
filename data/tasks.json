@@ -3,12 +3,23 @@
     {
       "id": "proj-home-security-001",
       "title": "🏠 Home Security System Project",
-      "description": "Future project idea: Build a home security solution. Details TBD - need to discuss requirements with Ben.",
+      "description": "Build comprehensive home security solution for 2822 Clune Ave Venice.\n\n## Requirements:\n- **Google Home integration** - Connect with existing Google Home devices\n- **Native Jules alerts** - Text-to-Jules from Google Home settings for warnings\n- **Intelligent filtering** - Jules interprets which warnings to escalate to Ben vs silence\n- **Abode integration** - Integrate with Abode security system API\n\n## Key Decisions Needed:\n- Alert escalation rules (what constitutes urgent vs routine)\n- Quiet hours handling (11pm-6am - escalate only for true emergencies)\n- Integration with existing Jules memory/reminders",
       "priority": "medium",
       "status": "todo",
       "createdAt": "2/5/2026, 8:29 PM",
+      "updatedAt": "2/6/2026, 11:19 AM",
       "rank": 0,
       "source": "jules"
+    },
+    {
+      "id": "task-fedramp-high-001",
+      "title": "🔒 Implement FedRAMP High Security Protocols",
+      "description": "Implement comprehensive FedRAMP High security controls and compliance protocols for UP.FIT government/fleet deployments.\n\n## Scope:\n- FedRAMP High baseline controls implementation\n- Security documentation and System Security Plan (SSP)\n- Continuous monitoring and auditing capabilities\n- Encryption at rest and in transit (FIPS 140-2 validated)\n- Multi-factor authentication (MFA) for all administrative access\n- Access control and least privilege enforcement\n- Audit logging and retention (minimum 1 year)\n- Incident response procedures\n- Vulnerability scanning and remediation\n- Penetration testing (annual)\n\n## Relevant to:\n- UP.FIT government fleet contracts\n- LVMPD and other law enforcement deployments\n- Federal procurement eligibility\n\n## Priority Context:\nHigh priority for federal/government sales pipeline. Required for contracts with federal agencies and many state/local government entities.",
+      "priority": "high",
+      "status": "todo",
+      "createdAt": "2/6/2026, 11:24 AM",
+      "rank": 1,
+      "source": "ben"
     }
   ]
 }
