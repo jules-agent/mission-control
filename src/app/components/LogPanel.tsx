@@ -5,6 +5,11 @@ import { X, FileText } from 'lucide-react';
 
 // Work log entries - add new entries at the top
 const LOG_ENTRIES = [
+  { date: '2/5/2026', time: '5:56 PM', text: 'Batch update: 7 tasks in progress - Tornado search/colors/favicon + MC log/model/automation/favicon' },
+  { date: '2/5/2026', time: '5:55 PM', text: 'Successfully generated news rap with AIML MiniMax API - custom lyrics about SpaceX/xAI merger, CATL sodium-ion EV' },
+  { date: '2/5/2026', time: '5:52 PM', text: 'Switched primary model from Kimi K2.5 to Opus 4.5 - updated Mission Control indicator' },
+  { date: '2/5/2026', time: '5:41 PM', text: 'Fixed .zshrc - added compinit before OpenClaw completions to resolve compdef error' },
+  { date: '2/5/2026', time: '5:28 PM', text: 'Session model override: Opus 4.5 now active for complex reasoning tasks' },
   { date: '2/5/2026', time: '4:35 PM', text: 'Tornado: Adding search box with comma-separated AND logic + fixing color system completely + tornado favicon' },
   { date: '2/5/2026', time: '4:19 PM', text: 'Generated morning news rap lyrics; AIML music API issues - sent lyrics as text' },
   { date: '2/5/2026', time: '4:09 PM', text: 'Fixed G3-Tornado row color visibility text/gradient conflicts in dark mode' },

@@ -1,8 +1,8 @@
 "use client";
 
 const models = [
-  { name: "Kimi K2.5", role: "Default", icon: "💬", status: "active" },
-  { name: "Opus 4.5", role: "Complex Tasks", icon: "🧠", status: "standby" },
+  { name: "Kimi K2.5", role: "Fallback", icon: "💬", status: "standby" },
+  { name: "Opus 4.5", role: "Primary", icon: "🧠", status: "active" },
   { name: "Codex CLI", role: "Development", icon: "⚡", status: "standby" }
 ];
 

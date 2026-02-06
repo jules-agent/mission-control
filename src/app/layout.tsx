@@ -11,7 +11,10 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   title: "Mission Control Dashboard",
-  description: "Status telemetry and mission task control."
+  description: "Status telemetry and mission task control.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

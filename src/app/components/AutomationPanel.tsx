@@ -15,12 +15,12 @@ type Reminder = {
 };
 
 const SCHEDULED_JOBS = [
-  { name: 'Heartbeat', schedule: '1h', desc: 'Status checks, news, cost monitor' },
-  { name: 'Morning Report', schedule: '6am', desc: 'Daily briefing' },
-  { name: 'Morning Status', schedule: '6:45am', desc: 'News + ideas' },
-  { name: 'Lunch Reminder', schedule: '8am M-F', desc: "Don't forget lunch!" },
-  { name: 'Task Review', schedule: '4h', desc: 'Mission Control tasks' },
-  { name: 'Usage Sync', schedule: '15m', desc: 'Sync API stats' },
+  { name: 'Heartbeat', schedule: '1h', desc: 'Status checks, news, cost monitor', model: null },
+  { name: 'Morning Report', schedule: '6am', desc: 'Daily briefing', model: 'opus' },
+  { name: 'Morning Status', schedule: '6:45am', desc: 'News + ideas', model: 'opus' },
+  { name: 'Lunch Reminder', schedule: '8am M-F', desc: "Don't forget lunch!", model: null },
+  { name: 'Task Review', schedule: '4h', desc: 'Mission Control tasks', model: null },
+  { name: 'Usage Sync', schedule: '15m', desc: 'Sync API stats', model: null },
 ];
 
 function formatTimeUntil(dateStr: string): string {
@@ -254,7 +254,14 @@ export function AutomationPanel() {
           <div className="space-y-0.5">
             {SCHEDULED_JOBS.map((job, i) => (
               <div key={i} className="flex items-center justify-between py-1 px-1.5 rounded bg-slate-800/30 text-xs">
-                <span className="text-slate-300 truncate" title={job.desc}>{job.name}</span>
+                <span className="text-slate-300 truncate flex items-center gap-1" title={job.desc}>
+                  {job.name}
+                  {job.model === 'opus' && (
+                    <span className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-purple-500/20 text-purple-400 rounded text-[9px] font-medium">
+                      🧠
+                    </span>
+                  )}
+                </span>
                 <span className="text-slate-500 text-[10px]">{job.schedule}</span>
               </div>
             ))}
