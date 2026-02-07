@@ -81,32 +81,32 @@ export default async function NewsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-6">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 px-3 py-4">
+      <div className="mx-auto max-w-[1800px]">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
             <Link
               href="/"
-              className="mb-2 text-sm text-slate-400 hover:text-slate-300"
+              className="text-xs text-slate-500 hover:text-slate-300"
             >
-              ← Back to Mission Control
+              ← Mission Control
             </Link>
-            <h1 className="text-4xl font-bold text-white">
+            <h1 className="mt-1 text-2xl font-bold text-white">
               Daily News Briefing
             </h1>
-            <p className="mt-2 text-slate-400">{today}</p>
+            <p className="text-xs text-slate-500">{today}</p>
           </div>
         </div>
 
         {briefings.length === 0 ? (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-12 text-center">
-            <p className="text-xl text-slate-400">
+          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-8 text-center">
+            <p className="text-slate-400">
               No briefing available yet. Check back at 6:45 AM PST.
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-5">
             {briefings.map((briefing) => {
               const config = categoryConfig[briefing.category as keyof typeof categoryConfig];
               if (!config) return null;
@@ -114,33 +114,33 @@ export default async function NewsPage() {
               return (
                 <section key={briefing.category}>
                   {/* Category Header */}
-                  <div className="mb-4 flex items-center gap-3">
+                  <div className="mb-2 flex items-center gap-2 border-l-4 border-slate-700 pl-3">
                     <div
-                      className={`flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br ${config.color} text-2xl`}
+                      className={`flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br ${config.color} text-lg`}
                     >
                       {config.icon}
                     </div>
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-lg font-bold text-white">
                       {config.name}
                     </h2>
-                    <div className="ml-auto text-sm text-slate-500">
+                    <div className="ml-auto text-xs text-slate-600">
                       {briefing.articles.length} article{briefing.articles.length !== 1 ? "s" : ""}
                     </div>
                   </div>
 
-                  {/* Articles Grid */}
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {/* Articles Grid - More columns, tighter spacing */}
+                  <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     {briefing.articles.map((article) => (
                       <a
                         key={article.id}
                         href={article.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group overflow-hidden rounded-lg border border-slate-700 bg-slate-800/50 transition-all hover:border-slate-600 hover:bg-slate-800"
+                        className="group flex flex-col overflow-hidden rounded-md border border-slate-800 bg-slate-900/50 transition-all hover:border-slate-600 hover:bg-slate-800/80"
                       >
                         {/* Thumbnail */}
                         {article.image_url && (
-                          <div className="aspect-video w-full overflow-hidden bg-slate-900">
+                          <div className="aspect-video w-full overflow-hidden bg-slate-950">
                             <img
                               src={article.image_url}
                               alt={article.title}
@@ -150,26 +150,26 @@ export default async function NewsPage() {
                         )}
 
                         {/* Content */}
-                        <div className="p-4">
+                        <div className="flex flex-1 flex-col p-3">
                           {/* Source badge */}
                           {article.source && (
-                            <div className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                            <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-600">
                               {article.source}
                             </div>
                           )}
 
                           {/* Title */}
-                          <h3 className="mb-2 line-clamp-2 text-lg font-semibold text-white group-hover:text-cyan-400">
+                          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-tight text-white group-hover:text-cyan-400">
                             {article.title}
                           </h3>
 
                           {/* Summary */}
-                          <p className="line-clamp-3 text-sm text-slate-400">
+                          <p className="mb-2 line-clamp-3 flex-1 text-xs leading-snug text-slate-500">
                             {article.summary}
                           </p>
 
                           {/* Read more link */}
-                          <div className="mt-3 flex items-center text-sm font-medium text-cyan-500">
+                          <div className="flex items-center text-xs font-medium text-cyan-600 group-hover:text-cyan-400">
                             Read more →
                           </div>
                         </div>
