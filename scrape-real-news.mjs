@@ -49,13 +49,13 @@ const feeds = [
   { url: 'https://la.eater.com/rss/index.xml', category: 'la_food', source: 'Eater LA', max: 5 },
   { url: 'https://www.latimes.com/food/rss2.0.xml', category: 'la_food', source: 'LA Times Food', max: 3 },
 
-  // Whisky (2 sources)
-  { url: 'https://www.whiskyadvocate.com/feed/', category: 'whisky', source: 'Whisky Advocate', max: 4 },
-  { url: 'https://scotchwhisky.com/feed/', category: 'whisky', source: 'Scotch Whisky', max: 3 },
+  // Whisky — use r/Scotch and r/whiskey RSS
+  { url: 'https://old.reddit.com/r/Scotch/.rss', category: 'whisky', source: 'r/Scotch', max: 5 },
+  { url: 'https://old.reddit.com/r/whiskey/.rss', category: 'whisky', source: 'r/whiskey', max: 5 },
 
-  // Business/Fleet (2 sources)
-  { url: 'https://www.fleetowner.com/rss', category: 'business', source: 'Fleet Owner', max: 4 },
-  { url: 'https://jalopnik.com/rss', category: 'business', source: 'Jalopnik', max: 4 },
+  // Business/Automotive (2 sources)
+  { url: 'https://jalopnik.com/rss', category: 'business', source: 'Jalopnik', max: 5 },
+  { url: 'https://www.thedrive.com/feed', category: 'business', source: 'The Drive', max: 5 },
 ];
 
 async function fetchFeed(feedConfig) {
