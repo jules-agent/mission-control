@@ -70,16 +70,6 @@ async function pingUrl(url: string, headers?: Record<string, string>): Promise<{
 export async function GET() {
   // Run all checks in parallel
   const checks = await Promise.all([
-    // Brave Search API
-    checkService("brave-search-api", "Brave Search API", async () => {
-      const braveKey = process.env.BRAVE_API_KEY;
-      if (!braveKey) return { ok: false, latencyMs: 0, error: "No API key configured" };
-      return pingUrl(
-        "https://api.search.brave.com/res/v1/web/search?q=test&count=1",
-        { "X-Subscription-Token": braveKey }
-      );
-    }),
-
     // GitHub API
     checkService("github-api", "GitHub API", async () => {
       return pingUrl("https://api.github.com");
