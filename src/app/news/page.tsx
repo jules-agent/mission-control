@@ -182,4 +182,4 @@ export default async function NewsPage() {
     </main>
   );
 }
-// Force redeploy
+// News dashboard v1.0
