@@ -31,6 +31,10 @@ CREATE POLICY "Service role can insert briefings"
   ON news_briefings FOR INSERT
   WITH CHECK (true);
 
+CREATE POLICY "Service role can delete briefings"
+  ON news_briefings FOR DELETE
+  USING (true);
+
 -- View for latest briefing
 CREATE OR REPLACE VIEW latest_briefing AS
 SELECT 

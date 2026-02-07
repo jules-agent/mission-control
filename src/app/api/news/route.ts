@@ -69,12 +69,27 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    // Get the latest briefing date (not hardcoded to today)
+    const { data: latestData } = await supabase
+      .from("news_briefings")
+      .select("briefing_date")
+      .order("briefing_date", { ascending: false })
+      .limit(1);
+
+    if (!latestData || latestData.length === 0) {
+      return NextResponse.json({
+        briefing_date: null,
+        categories: {},
+        total: 0,
+      });
+    }
+
+    const latestDate = latestData[0].briefing_date;
 
     const { data, error } = await supabase
       .from("news_briefings")
       .select("*")
-      .eq("briefing_date", today)
+      .eq("briefing_date", latestDate)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -92,7 +107,7 @@ export async function GET() {
     }, {} as Record<string, any[]>);
 
     return NextResponse.json({
-      briefing_date: today,
+      briefing_date: latestDate,
       categories: grouped,
       total: data.length,
     });
