@@ -87,8 +87,12 @@ export async function GET() {
 
     // OpenAI API (just ping, don't make actual request)
     checkService("openai-api", "OpenAI API", async () => {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return { ok: false, latencyMs: 0, error: "Not configured" };
+      }
       return pingUrl("https://api.openai.com/v1/models", {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY || ""}`,
+        Authorization: `Bearer ${apiKey}`,
       });
     }),
 
