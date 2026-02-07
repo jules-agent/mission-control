@@ -22,6 +22,88 @@ const parser = new Parser({
   }
 });
 
+// Relevancy engine — matches Ben's interests without AI tokens
+function getRelevancy(title, snippet, category) {
+  const t = (title + ' ' + snippet).toLowerCase();
+  const parts = [];
+  
+  // Add the actual article snippet first (trimmed)
+  const cleanSnippet = snippet.replace(/\s+/g, ' ').trim().substring(0, 200);
+  if (cleanSnippet) parts.push(cleanSnippet);
+  
+  // Then add personalized relevancy note
+  const tags = [];
+  
+  // Tesla / Unplugged Performance relevancy
+  if (/tesla|cybertruck|model [s3xy]|supercharger/i.test(t)) tags.push('🎯 Direct UP opportunity — aftermarket parts & service');
+  if (/fsd|autopilot|self.?driv/i.test(t)) tags.push('🎯 FSD progress affects UP customer base');
+  if (/battery|range|charging/i.test(t)) tags.push('⚡ Battery/range tech — affects UP performance builds');
+  if (/delivery|production|factory/i.test(t)) tags.push('📊 Production volume = more UP customers');
+  
+  // EV competition
+  if (/rivian|lucid|polestar|byd|nio/i.test(t)) tags.push('👀 Competitor watch — EV market dynamics');
+  if (/ev.*(fleet|commercial|police|government)/i.test(t)) tags.push('🚨 UP.FIT opportunity — fleet/gov EV adoption');
+  
+  // Crypto relevancy
+  if (/bitcoin|btc/i.test(t)) tags.push('₿ Portfolio watch — BTC position');
+  if (/ethereum|eth\b/i.test(t)) tags.push('📊 ETH position impact');
+  if (/etf|institutional/i.test(t)) tags.push('🏦 Institutional flow — market maturity signal');
+  if (/regulation|sec\b|fed\b/i.test(t)) tags.push('⚖️ Regulatory impact on holdings');
+  
+  // Stock market
+  if (/tsla/i.test(t)) tags.push('🎯 Direct TSLA holding impact');
+  if (/earnings|revenue|profit/i.test(t)) tags.push('📊 Earnings signal — check positions');
+  if (/rate.?cut|interest.?rate|fed/i.test(t)) tags.push('🏦 Rate move — affects growth stocks & real estate');
+  if (/crash|selloff|correction|bear/i.test(t)) tags.push('⚠️ Risk alert — review exposure');
+  if (/rally|surge|bull|record/i.test(t)) tags.push('📈 Momentum signal — opportunity window');
+  
+  // Tech/AI
+  if (/ai\b|artificial.?intel|llm|gpt|claude|openai/i.test(t)) tags.push('🤖 AI advancement — automation opportunity for UP operations');
+  if (/drone|uav/i.test(t)) tags.push('🚨 UP.FIT direct — Skydio/drone partnership relevance');
+  if (/autonom|self.?driv/i.test(t)) tags.push('🎯 UP.FIT fleet automation angle');
+  if (/apple|google|meta|amazon/i.test(t)) tags.push('📊 Big Tech signal — portfolio/market indicator');
+  
+  // Whisky
+  if (/yamazaki|hibiki|hakushu|nikka|suntory/i.test(t)) tags.push('🎯 Japanese whisky — check investment potential');
+  if (/macallan|dalmore|springbank/i.test(t)) tags.push('💰 Premium Scotch — flip potential');
+  if (/auction|rare|limited|allocat/i.test(t)) tags.push('🔥 Scarcity play — act fast if under $1,200');
+  if (/cask.?strength|single.?cask|independent.?bottl/i.test(t)) tags.push('💎 IB/cask strength — your sweet spot');
+  
+  // LA Food
+  if (/korean|bbq|kbbq/i.test(t)) tags.push('🔥 Your favorite — Korean BBQ alert');
+  if (/japanese|ramen|sushi|omakase/i.test(t)) tags.push('🍣 Japanese food — right up your alley');
+  if (/venice|santa.?monica|mar.?vista|culver/i.test(t)) tags.push('📍 Near home — worth checking out');
+  if (/hawthorne|inglewood|lax/i.test(t)) tags.push('📍 Near work — lunch spot potential');
+  if (/keto|low.?carb|meat|steak|lamb|brisket/i.test(t)) tags.push('✅ Keto-friendly option');
+  if (/open|new|debut/i.test(t)) tags.push('🆕 New opening — try before it gets packed');
+  
+  // Business/Fleet
+  if (/police|law.?enforce|public.?safety/i.test(t)) tags.push('🚨 UP.FIT target customer — gov/police');
+  if (/fleet|commercial.?vehicle/i.test(t)) tags.push('🎯 UP.FIT fleet market intel');
+  if (/jdm|import|nsx|supra|gtr|r3[245]/i.test(t)) tags.push('🏎️ Bulletproof Automotive — JDM market');
+  if (/koenigsegg/i.test(t)) tags.push('🤝 UP manufacturing partner mention');
+  
+  // Elon / SpaceX
+  if (/elon|musk|spacex/i.test(t)) tags.push('🚀 Elon/SpaceX — ecosystem signal for UP');
+  
+  // Default if no specific tags matched
+  if (tags.length === 0) {
+    const catDefaults = {
+      tesla_ev: '⚡ EV market intel — monitor for UP impact',
+      crypto: '📊 Crypto market movement — portfolio awareness',
+      stocks: '📈 Market signal — check portfolio exposure',
+      tech: '🤖 Tech trend — potential business application',
+      la_food: '🍽️ LA dining scene — potential spot to try',
+      whisky: '🥃 Whisky market — investment/collecting intel',
+      business: '💡 Business/auto industry intel'
+    };
+    tags.push(catDefaults[category] || '📰 General news');
+  }
+  
+  // Combine snippet + relevancy tags
+  return parts.join(' ') + (tags.length > 0 ? ' — ' + tags.join(' | ') : '');
+}
+
 console.log('🔍 Scraping REAL news from RSS feeds...\n');
 
 // RSS feeds mapped to categories — expanded for density
@@ -75,14 +157,20 @@ async function fetchFeed(feedConfig) {
       return null;
     }
 
-    const articles = feed.items.slice(0, feedConfig.max).map(item => ({
-      category: feedConfig.category,
-      title: (item.title || 'Untitled').substring(0, 150),
-      summary: (item.contentSnippet || item.content || '').replace(/<[^>]+>/g, '').substring(0, 200),
-      url: item.link,
-      source: feedConfig.source,
-      image_url: extractImage(item)
-    }));
+    const articles = feed.items.slice(0, feedConfig.max).map(item => {
+      const title = (item.title || 'Untitled').substring(0, 150);
+      const snippet = (item.contentSnippet || item.content || '').replace(/<[^>]+>/g, '').substring(0, 300);
+      const relevancy = getRelevancy(title, snippet, feedConfig.category);
+      
+      return {
+        category: feedConfig.category,
+        title,
+        summary: relevancy,
+        url: item.link,
+        source: feedConfig.source,
+        image_url: null // skip thumbnails — text only
+      };
+    });
 
     console.log(`  ✅ ${articles.length} articles`);
     return articles;

@@ -120,59 +120,45 @@ export default async function NewsPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="columns-1 gap-4 md:columns-2 xl:columns-3 2xl:columns-4">
             {briefings.map((briefing) => {
               const config = categoryConfig[briefing.category as keyof typeof categoryConfig];
               if (!config) return null;
 
               return (
-                <section key={briefing.category}>
-                  {/* Category Header - compact */}
-                  <div className="mb-1.5 flex items-center gap-1.5 border-l-2 border-slate-700 pl-2">
-                    <span className="text-sm">{config.icon}</span>
-                    <h2 className="text-sm font-bold text-white">
+                <section key={briefing.category} className="mb-4 break-inside-avoid">
+                  {/* Category Header */}
+                  <div className="mb-1 flex items-center gap-1.5 border-b border-slate-800 pb-1">
+                    <span className="text-xs">{config.icon}</span>
+                    <h2 className="text-xs font-bold uppercase tracking-wide text-slate-400">
                       {config.name}
                     </h2>
                     <span className="text-[10px] text-slate-600">
-                      ({briefing.articles.length})
+                      {briefing.articles.length}
                     </span>
                   </div>
 
-                  {/* Articles - horizontal compact rows */}
-                  <div className="space-y-1">
+                  {/* Articles - text only, dense */}
+                  <div className="divide-y divide-slate-800/50">
                     {briefing.articles.map((article) => (
                       <a
                         key={article.id}
                         href={article.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex items-start gap-2 rounded border border-slate-800/50 bg-slate-900/30 p-1.5 transition-all hover:border-slate-600 hover:bg-slate-800/60"
+                        className="group block py-1.5 transition-colors hover:bg-slate-800/30"
                       >
-                        {/* Tiny thumbnail */}
-                        {article.image_url && (
-                          <div className="h-10 w-14 flex-shrink-0 overflow-hidden rounded bg-slate-950">
-                            <img
-                              src={article.image_url}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        )}
-
-                        {/* Content - inline */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-[9px] font-medium uppercase tracking-wider text-slate-600">
-                              {article.source}
-                            </span>
-                          </div>
-                          <h3 className="line-clamp-1 text-xs font-semibold leading-tight text-white group-hover:text-cyan-400">
-                            {article.title}
-                          </h3>
-                          <p className="line-clamp-1 text-[11px] leading-snug text-slate-500">
-                            {article.summary}
-                          </p>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[9px] font-medium text-slate-600">
+                            {article.source}
+                          </span>
                         </div>
+                        <h3 className="text-[13px] font-semibold leading-snug text-white group-hover:text-cyan-400">
+                          {article.title}
+                        </h3>
+                        <p className="mt-0.5 text-xs leading-snug text-slate-400">
+                          {article.summary}
+                        </p>
                       </a>
                     ))}
                   </div>
