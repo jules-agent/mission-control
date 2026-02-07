@@ -29,3 +29,4 @@ The API routes read and write directly to these files.
 - `npm run build` - production build
 - `npm run start` - start production server
 - `npm run lint` - run Next.js lint
+# Trigger deployment with NEXT_PUBLIC_SUPABASE_URL
