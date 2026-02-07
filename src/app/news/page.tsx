@@ -120,72 +120,58 @@ export default async function NewsPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-3">
             {briefings.map((briefing) => {
               const config = categoryConfig[briefing.category as keyof typeof categoryConfig];
               if (!config) return null;
 
               return (
                 <section key={briefing.category}>
-                  {/* Category Header */}
-                  <div className="mb-2 flex items-center gap-2 border-l-4 border-slate-700 pl-3">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br ${config.color} text-lg`}
-                    >
-                      {config.icon}
-                    </div>
-                    <h2 className="text-lg font-bold text-white">
+                  {/* Category Header - compact */}
+                  <div className="mb-1.5 flex items-center gap-1.5 border-l-2 border-slate-700 pl-2">
+                    <span className="text-sm">{config.icon}</span>
+                    <h2 className="text-sm font-bold text-white">
                       {config.name}
                     </h2>
-                    <div className="ml-auto text-xs text-slate-600">
-                      {briefing.articles.length} article{briefing.articles.length !== 1 ? "s" : ""}
-                    </div>
+                    <span className="text-[10px] text-slate-600">
+                      ({briefing.articles.length})
+                    </span>
                   </div>
 
-                  {/* Articles Grid - More columns, tighter spacing */}
-                  <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {/* Articles - horizontal compact rows */}
+                  <div className="space-y-1">
                     {briefing.articles.map((article) => (
                       <a
                         key={article.id}
                         href={article.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex flex-col overflow-hidden rounded-md border border-slate-800 bg-slate-900/50 transition-all hover:border-slate-600 hover:bg-slate-800/80"
+                        className="group flex items-start gap-2 rounded border border-slate-800/50 bg-slate-900/30 p-1.5 transition-all hover:border-slate-600 hover:bg-slate-800/60"
                       >
-                        {/* Thumbnail */}
+                        {/* Tiny thumbnail */}
                         {article.image_url && (
-                          <div className="aspect-video w-full overflow-hidden bg-slate-950">
+                          <div className="h-10 w-14 flex-shrink-0 overflow-hidden rounded bg-slate-950">
                             <img
                               src={article.image_url}
-                              alt={article.title}
-                              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                              alt=""
+                              className="h-full w-full object-cover"
                             />
                           </div>
                         )}
 
-                        {/* Content */}
-                        <div className="flex flex-1 flex-col p-3">
-                          {/* Source badge */}
-                          {article.source && (
-                            <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+                        {/* Content - inline */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-[9px] font-medium uppercase tracking-wider text-slate-600">
                               {article.source}
-                            </div>
-                          )}
-
-                          {/* Title */}
-                          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-tight text-white group-hover:text-cyan-400">
+                            </span>
+                          </div>
+                          <h3 className="line-clamp-1 text-xs font-semibold leading-tight text-white group-hover:text-cyan-400">
                             {article.title}
                           </h3>
-
-                          {/* Summary */}
-                          <p className="mb-2 line-clamp-3 flex-1 text-xs leading-snug text-slate-500">
+                          <p className="line-clamp-1 text-[11px] leading-snug text-slate-500">
                             {article.summary}
                           </p>
-
-                          {/* Read more link */}
-                          <div className="flex items-center text-xs font-medium text-cyan-600 group-hover:text-cyan-400">
-                            Read more →
-                          </div>
                         </div>
                       </a>
                     ))}
