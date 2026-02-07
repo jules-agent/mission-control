@@ -38,10 +38,24 @@ const categoryConfig = {
 };
 
 async function getBriefingData(): Promise<BriefingData[]> {
+  // Get the latest briefing date first
+  const { data: latestData } = await supabase
+    .from("news_briefings")
+    .select("briefing_date")
+    .order("briefing_date", { ascending: false })
+    .limit(1);
+
+  if (!latestData || latestData.length === 0) {
+    return [];
+  }
+
+  const latestDate = latestData[0].briefing_date;
+
+  // Fetch all articles for the latest briefing
   const { data, error } = await supabase
     .from("news_briefings")
     .select("*")
-    .eq("briefing_date", new Date().toISOString().split("T")[0])
+    .eq("briefing_date", latestDate)
     .order("created_at", { ascending: false });
 
   if (error) {
