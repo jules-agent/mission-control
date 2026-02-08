@@ -20,6 +20,16 @@
       "createdAt": "2/6/2026, 11:24 AM",
       "rank": 1,
       "source": "ben"
+    },
+    {
+      "id": "app-kidsize-001",
+      "title": "👶 KidSize App - Kids Clothing Size & Style Tracker",
+      "description": "iPhone + Android app for parents to share kids clothing sizes, preferences, and style photos.\n\n## Core Value Prop:\nRetain accurate sizing data for kids — solves \"what size is my kid now?\" for everyone who buys them clothes.\n\n## Key Features:\n1. Parents store kids sizes (clothes, shoes) — updated as they grow\n2. Notes on what kids like/dont like\n3. Upload photos of clothes and styles they like\n4. **Killer feature:** Request sizing data from non-users (grandparents, co-parents) — seamlessly enrolls them as guest profile without account\n5. Affiliate revenue from shopping recommendations based on sizes + preferences\n\n## Viral Loop:\n- School parent groups + cousin circles = organic distribution\n- Every sizing request = new user enrollment\n- Birthday/holiday seasons = growth events\n\n## Origin:\nMaggies idea — her friend network is the distribution channel. Parent groups at Auggies school are tight viral networks.\n\n## Comparable:\nBabyList, but focused on ongoing size tracking vs one-time registry.\n\n## Revenue:\nAffiliate commissions on clothing purchases (size-matched recommendations)\n\n## Status:\nMVP wireframes and tech stack in progress.",
+      "priority": "medium",
+      "status": "in-progress",
+      "createdAt": "2/7/2026, 5:23 PM",
+      "rank": 2,
+      "source": "ben"
     }
   ]
 }
