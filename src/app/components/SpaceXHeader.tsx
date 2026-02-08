@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LogButton } from "./LogPanel";
+import { RefreshButton } from "./RefreshButton";
 import Link from "next/link";
 
 type VersionInfo = {
@@ -141,6 +142,7 @@ export function SpaceXHeader() {
                   📰 NEWS
                 </Link>
                 <LogButton />
+                <RefreshButton />
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-sm text-slate-400 font-mono">
