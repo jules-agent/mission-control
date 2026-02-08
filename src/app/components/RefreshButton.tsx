@@ -9,7 +9,7 @@ export function RefreshButton() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    setMessage('');
+    setMessage('Triggering sync...');
     
     try {
       const response = await fetch('/api/refresh-usage', {
@@ -19,15 +19,25 @@ export function RefreshButton() {
       const data = await response.json();
       
       if (data.success) {
-        setMessage('✅ Usage data refreshed');
-        // Reload the page to show updated data
-        setTimeout(() => window.location.reload(), 1000);
+        setMessage('✅ Sync triggered - reloading in 30s...');
+        // Wait for sync to complete, then reload
+        setTimeout(() => window.location.reload(), 30000);
+      } else if (data.autoSync) {
+        // Gateway not accessible - auto-sync is active
+        setMessage('⏱️ Auto-syncs every 30 min');
+        setTimeout(() => {
+          setRefreshing(false);
+          setMessage('');
+        }, 3000);
       } else {
-        setMessage('❌ Refresh failed');
+        setMessage(`❌ ${data.error || 'Failed'}`);
+        setTimeout(() => {
+          setRefreshing(false);
+          setMessage('');
+        }, 3000);
       }
     } catch (error) {
       setMessage('❌ Error refreshing');
-    } finally {
       setTimeout(() => {
         setRefreshing(false);
         setMessage('');

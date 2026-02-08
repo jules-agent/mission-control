@@ -1,25 +1,59 @@
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
-const execAsync = promisify(exec);
+// Gateway URL - use Tailscale URL for remote access, localhost for local dev
+const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL;
+const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN;
 
 export async function POST() {
+  // If no gateway URL configured, we can't trigger remote sync
+  if (!GATEWAY_URL) {
+    return NextResponse.json({ 
+      success: false,
+      error: 'Gateway URL not configured. Usage syncs automatically every 30 minutes.',
+      autoSync: true,
+    }, { status: 503 });
+  }
+
   try {
-    const scriptPath = '/Users/jules/.openclaw/workspace/scripts/sync-usage.sh';
+    // Create a one-time cron job to run the sync script
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
     
-    // Run the sync script
-    const { stdout, stderr } = await execAsync(`bash ${scriptPath}`, {
-      timeout: 30000, // 30 second timeout
+    if (GATEWAY_TOKEN) {
+      headers['Authorization'] = `Bearer ${GATEWAY_TOKEN}`;
+    }
+
+    const cronResponse = await fetch(`${GATEWAY_URL}/v1/cron/add`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Manual Usage Sync',
+        sessionTarget: 'main',
+        payload: {
+          kind: 'systemEvent',
+          text: 'bash /Users/jules/.openclaw/workspace/scripts/sync-usage.sh'
+        },
+        schedule: {
+          kind: 'at',
+          at: new Date(Date.now() + 2000).toISOString() // 2 seconds from now
+        },
+        deleteAfterRun: true, // Auto-delete after completion
+      }),
+      signal: AbortSignal.timeout(10000),
     });
-    
-    console.log('Sync output:', stdout);
-    if (stderr) console.error('Sync stderr:', stderr);
+
+    if (!cronResponse.ok) {
+      const errorText = await cronResponse.text();
+      throw new Error(`${cronResponse.status} - ${errorText}`);
+    }
+
+    const cronData = await cronResponse.json();
     
     return NextResponse.json({ 
       success: true,
-      message: 'Usage data refreshed successfully',
-      output: stdout,
+      message: 'Sync triggered - reload in 30 seconds',
+      jobId: cronData.id,
     });
   } catch (error) {
     console.error('Refresh error:', error);
