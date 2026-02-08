@@ -21,6 +21,8 @@ interface NewsArticle {
   url: string;
   image_url: string | null;
   source: string;
+  relevance_score?: number;
+  why_relevant?: string;
 }
 
 interface BriefingData {
@@ -65,8 +67,41 @@ async function getBriefingData(): Promise<BriefingData[]> {
     return [];
   }
 
-  // Group by category
-  const grouped = (data || []).reduce((acc, article) => {
+  // Enrich with relevance scores
+  const enriched = (data || []).map((article) => {
+    const text = `${article.title} ${article.summary}`;
+    let relevance_score = 15;
+    let why_relevant = "General news";
+
+    // Tier 1
+    if (/\b(unplugged\s*performance|UP\.FIT|bulletproof)\b/i.test(text)) { relevance_score = 100; why_relevant = "Directly mentions UP / UP.FIT"; }
+    else if (/\b(tesla|tsla|cybertruck)\b/i.test(text)) { relevance_score = 100; why_relevant = "Tesla ecosystem — your TSLA position & UP builds"; }
+    else if (/\belon\s*musk\b/i.test(text)) { relevance_score = 100; why_relevant = "Elon/Tesla ecosystem"; }
+    else if (/\b(fleet|commercial\s+vehicle|commercial\s+ev)\b/i.test(text)) { relevance_score = 100; why_relevant = "Fleet/commercial — core UP.FIT business"; }
+    else if (/\bmodel\s*[syxp3]\b/i.test(text)) { relevance_score = 100; why_relevant = "Tesla model news — UP builds"; }
+    // Tier 2
+    else if (/\b(bitcoin|btc)\b/i.test(text)) { relevance_score = 75; why_relevant = "Your BTC holdings (since ~$8K)"; }
+    else if (/\bibit\b/i.test(text)) { relevance_score = 75; why_relevant = "IBIT — your active options position"; }
+    else if (/\b(blackrock|bitcoin\s+etf)\b/i.test(text)) { relevance_score = 75; why_relevant = "Bitcoin ETF — affects your IBIT trades"; }
+    else if (/\b(whisky|whiskey|scotch)\b.*\b(invest|auction|price|rare|cask)\b/i.test(text)) { relevance_score = 75; why_relevant = "Whisky investing (2x/1yr, <$1,200)"; }
+    // Tier 3
+    else if (/\b(ai|artificial\s+intelligence)\b.*\b(business|enterprise|automat)\b/i.test(text)) { relevance_score = 50; why_relevant = "AI tools for UP operations"; }
+    else if (/\b(la|los\s+angeles)\b.*\b(restaurant|food|dining)\b/i.test(text)) { relevance_score = 50; why_relevant = "LA food scene — check it out"; }
+    else if (/\bcrypto\b/i.test(text)) { relevance_score = 50; why_relevant = "Crypto market"; }
+    else {
+      const cs: Record<string, [number, string]> = {
+        tesla_ev: [60, "EV/Tesla industry"], crypto: [45, "Crypto market"], stocks: [40, "Markets"],
+        whisky: [35, "Whisky"], tech: [30, "Tech/AI"], la_food: [25, "LA scene"], business: [20, "Business"],
+      };
+      const [s, w] = cs[article.category] || [15, "General news"];
+      relevance_score = s; why_relevant = w;
+    }
+
+    return { ...article, relevance_score, why_relevant };
+  });
+
+  // Group by category, sorted by relevance within each
+  const grouped = enriched.reduce((acc, article) => {
     const category = article.category;
     if (!acc[category]) {
       acc[category] = {
@@ -79,7 +114,18 @@ async function getBriefingData(): Promise<BriefingData[]> {
     return acc;
   }, {} as Record<string, BriefingData>);
 
-  return Object.values(grouped);
+  // Sort articles within each category by relevance
+  for (const cat of Object.values(grouped) as BriefingData[]) {
+    cat.articles.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+  }
+
+  // Sort categories by highest-scored article
+  const cats = Object.values(grouped) as BriefingData[];
+  return cats.sort((a, b) => {
+    const aMax = Math.max(...a.articles.map(x => x.relevance_score || 0));
+    const bMax = Math.max(...b.articles.map(x => x.relevance_score || 0));
+    return bMax - aMax;
+  });
 }
 
 export default async function NewsPage() {
@@ -166,6 +212,11 @@ export default async function NewsPage() {
                             <p className="mt-0.5 text-xs leading-snug text-slate-400">
                               {article.summary}
                             </p>
+                            {article.why_relevant && article.why_relevant !== "General news" && (
+                              <p className="mt-0.5 text-[10px] leading-snug text-cyan-500/70 italic">
+                                💡 {article.why_relevant}
+                              </p>
+                            )}
                           </a>
                           <div className="flex-shrink-0 pt-1">
                             <FeedbackButtons
