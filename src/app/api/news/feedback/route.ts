@@ -15,17 +15,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid vote" }, { status: 400 });
     }
 
-    const { data, error } = await supabase.from("news_feedback").upsert(
-      {
-        article_id,
-        article_title: article_title || "",
-        article_url: article_url || "",
-        category: category || "",
-        vote,
-        comment: comment || null,
-      },
-      { onConflict: "article_id" }
-    );
+    const { data, error } = await supabase.from("news_feedback").insert({
+      article_id: article_id || null,
+      article_title: article_title || "",
+      article_url: article_url || "",
+      category: category || "",
+      vote,
+      comment: comment || null,
+    });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
