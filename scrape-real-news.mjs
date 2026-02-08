@@ -206,7 +206,7 @@ if (allArticles.length > 0) {
 
   const { data, error } = await supabase
     .from('news_briefings')
-    .upsert(records, { onConflict: 'briefing_date,url', ignoreDuplicates: true });
+    .upsert(records, { onConflict: 'briefing_date,url', ignoreDuplicates: false });
 
   if (error) {
     console.error('❌ DB error:', error);
