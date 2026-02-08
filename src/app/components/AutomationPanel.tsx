@@ -16,11 +16,9 @@ type Reminder = {
 
 const SCHEDULED_JOBS = [
   { name: 'Heartbeat', schedule: '1h', desc: 'Status checks, news, cost monitor', model: null },
-  { name: 'Morning Report', schedule: '6am', desc: 'Daily briefing', model: 'opus' },
-  { name: 'Morning Status', schedule: '6:45am', desc: 'News + ideas', model: 'opus' },
+  { name: 'Morning Rap', schedule: '6:30am', desc: 'News rap (80% news + 20% advice)', model: null },
   { name: 'Lunch Reminder', schedule: '8am M-F', desc: "Don't forget lunch!", model: null },
-  { name: 'Task Review', schedule: '4h', desc: 'Mission Control tasks', model: null },
-  { name: 'Usage Sync', schedule: '15m', desc: 'Sync API stats', model: null },
+  { name: 'Task Check', schedule: '4am daily', desc: 'Mission Control task review', model: null },
 ];
 
 function formatTimeUntil(dateStr: string): string {
