@@ -17,7 +17,7 @@ export function SpaceXHeader() {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
 
   useEffect(() => {
-    // Check for updates on mount and every 30 seconds
+    // Check for updates on mount and every 10 minutes
     const checkVersion = () => {
       fetch("/api/openclaw-version")
         .then((res) => res.json())
@@ -26,7 +26,7 @@ export function SpaceXHeader() {
     };
     
     checkVersion(); // Initial check
-    const interval = setInterval(checkVersion, 30000); // Every 30s
+    const interval = setInterval(checkVersion, 600000); // Every 10 min
     
     return () => clearInterval(interval);
   }, []);
