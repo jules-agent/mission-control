@@ -17,11 +17,18 @@ export function SpaceXHeader() {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
 
   useEffect(() => {
-    // Check for updates
-    fetch("/api/openclaw-version")
-      .then((res) => res.json())
-      .then((data) => setVersionInfo(data))
-      .catch(() => {}); // Silently fail
+    // Check for updates on mount and every 30 seconds
+    const checkVersion = () => {
+      fetch("/api/openclaw-version")
+        .then((res) => res.json())
+        .then((data) => setVersionInfo(data))
+        .catch(() => {}); // Silently fail
+    };
+    
+    checkVersion(); // Initial check
+    const interval = setInterval(checkVersion, 30000); // Every 30s
+    
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
