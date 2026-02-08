@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "../api/auth/auth-options";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import FeedbackButtons from "./FeedbackButtons";
 
 // Force dynamic rendering on Vercel
 export const dynamic = "force-dynamic";
@@ -141,25 +142,39 @@ export default async function NewsPage() {
                   {/* Articles - text only, dense */}
                   <div className="divide-y divide-slate-800/50">
                     {briefing.articles.map((article) => (
-                      <a
+                      <div
                         key={article.id}
-                        href={article.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group block py-1.5 transition-colors hover:bg-slate-800/30"
+                        className="group py-1.5 transition-colors hover:bg-slate-800/30"
                       >
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-[9px] font-medium text-slate-600">
-                            {article.source}
-                          </span>
+                        <div className="flex items-start gap-2">
+                          <a
+                            href={article.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="min-w-0 flex-1"
+                          >
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-[9px] font-medium text-slate-600">
+                                {article.source}
+                              </span>
+                            </div>
+                            <h3 className="text-[13px] font-semibold leading-snug text-white group-hover:text-cyan-400">
+                              {article.title}
+                            </h3>
+                            <p className="mt-0.5 text-xs leading-snug text-slate-400">
+                              {article.summary}
+                            </p>
+                          </a>
+                          <div className="flex-shrink-0 pt-1">
+                            <FeedbackButtons
+                              articleId={article.id}
+                              articleTitle={article.title}
+                              articleUrl={article.url}
+                              category={briefing.category}
+                            />
+                          </div>
                         </div>
-                        <h3 className="text-[13px] font-semibold leading-snug text-white group-hover:text-cyan-400">
-                          {article.title}
-                        </h3>
-                        <p className="mt-0.5 text-xs leading-snug text-slate-400">
-                          {article.summary}
-                        </p>
-                      </a>
+                      </div>
                     ))}
                   </div>
                 </section>
