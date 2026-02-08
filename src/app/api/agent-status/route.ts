@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const DEFAULT_MODELS = [
   { name: "Sonnet 4.5", role: "Primary / Day-to-Day", icon: "🎯", status: "active" as const },
-  { name: "Opus 4.5", role: "Complex / Fallback", icon: "🧠", status: "standby" as const },
+  { name: "Opus 4.6", role: "Complex / Fallback", icon: "🧠", status: "standby" as const },
   { name: "Kimi K2.5", role: "Final Fallback", icon: "⬇️", status: "standby" as const },
   { name: "Codex CLI", role: "Development", icon: "⚡", status: "standby" as const },
 ];
@@ -84,7 +84,7 @@ export async function GET() {
         const isSonnet = activeModel.toLowerCase().includes("sonnet") || activeModel.toLowerCase().includes("claude-sonnet");
         const models = [
           { name: "Sonnet 4.5", role: "Primary / Day-to-Day", icon: "🎯", status: isSonnet ? "active" as const : "standby" as const },
-          { name: "Opus 4.5", role: "Complex / Fallback", icon: "🧠", status: isOpus ? "active" as const : "standby" as const },
+          { name: "Opus 4.6", role: "Complex / Fallback", icon: "🧠", status: isOpus ? "active" as const : "standby" as const },
           { name: "Kimi K2.5", role: "Final Fallback", icon: "⬇️", status: isKimi ? "active" as const : "standby" as const },
           { name: "Codex CLI", role: "Development", icon: "⚡", status: isCodex ? "active" as const : "standby" as const },
         ];

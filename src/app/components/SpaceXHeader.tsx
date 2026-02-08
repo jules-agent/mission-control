@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LogButton } from "./LogPanel";
+import Link from "next/link";
 
 export function SpaceXHeader() {
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
@@ -110,9 +111,15 @@ export function SpaceXHeader() {
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-500/20 text-green-400 border border-green-500/30">
                   LIVE
                 </span>
+                <Link
+                  href="/news"
+                  className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors cursor-pointer"
+                >
+                  📰 NEWS
+                </Link>
                 <LogButton />
               </div>
-              <p className="text-sm text-slate-400 mt-1 font-mono">OPENCLAW-1 • Operations Command Center</p>
+              <p className="text-sm text-slate-400 mt-1 font-mono">OPENCLAW 2026.2.6-3 • Operations Command Center</p>
             </div>
           </div>
 
