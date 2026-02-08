@@ -4,9 +4,25 @@ import { useEffect, useState } from "react";
 import { LogButton } from "./LogPanel";
 import Link from "next/link";
 
+type VersionInfo = {
+  currentVersion: string;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  releaseUrl?: string;
+};
+
 export function SpaceXHeader() {
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [missionTime, setMissionTime] = useState("T+00:00:00");
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+
+  useEffect(() => {
+    // Check for updates
+    fetch("/api/openclaw-version")
+      .then((res) => res.json())
+      .then((data) => setVersionInfo(data))
+      .catch(() => {}); // Silently fail
+  }, []);
 
   useEffect(() => {
     // Mission elapsed time since "launch" (session start)
@@ -119,7 +135,22 @@ export function SpaceXHeader() {
                 </Link>
                 <LogButton />
               </div>
-              <p className="text-sm text-slate-400 mt-1 font-mono">OPENCLAW 2026.2.6-3 • Operations Command Center</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-slate-400 font-mono">
+                  OPENCLAW {versionInfo?.currentVersion || "2026.2.6-3"} • Operations Command Center
+                </p>
+                {versionInfo?.updateAvailable && versionInfo.releaseUrl && (
+                  <a
+                    href={versionInfo.releaseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+                    title={`Update to ${versionInfo.latestVersion}`}
+                  >
+                    🔔 UPDATE
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 
