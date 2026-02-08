@@ -43,59 +43,84 @@ function generateChartData(
   period: Period,
   hourlyData: { hour: string; cost: number }[]
 ): { label: string; cost: number }[] {
-  const now = new Date();
+  // Get current time in PST
+  const nowPST = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  const todayPST = nowPST.toISOString().slice(0, 10);
   
   // Sort hourly data by timestamp (oldest first) to ensure correct order
   const sortedData = [...hourlyData].sort((a, b) => a.hour.localeCompare(b.hour));
   
   switch (period) {
     case "today": {
-      // Show hourly data for today - oldest hour on left, newest on right
-      const todayPrefix = now.toISOString().slice(0, 10);
-      const todayData = sortedData.filter(d => d.hour.startsWith(todayPrefix));
+      // Convert UTC hours to PST and filter for today
+      const todayData = sortedData
+        .map(d => {
+          // Parse UTC timestamp and convert to PST
+          const utcDate = new Date(d.hour + ":00:00Z");
+          const pstDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+          const pstDateStr = pstDate.toISOString().slice(0, 10);
+          const pstHour = pstDate.getHours();
+          
+          return {
+            date: pstDateStr,
+            hour: pstHour,
+            cost: d.cost,
+            originalHour: d.hour
+          };
+        })
+        .filter(d => d.date === todayPST);
       
       // Create hour labels (oldest to newest = left to right)
       return todayData.map(d => {
-        const hour = parseInt(d.hour.slice(11, 13));
+        const hour = d.hour;
         const label = hour === 0 ? "12am" : hour < 12 ? `${hour}am` : hour === 12 ? "12pm" : `${hour - 12}pm`;
         return { label, cost: d.cost };
       });
     }
     
     case "week": {
-      // Show daily data for last 7 days - oldest day on left, newest on right
+      // Show daily data for last 7 days in PST - oldest day on left, newest on right
       const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       const data: { label: string; cost: number }[] = [];
       
-      // Loop from 6 days ago (oldest) to today (newest)
+      // Group hourly data by PST date
+      const dailyCosts = new Map<string, number>();
+      for (const d of sortedData) {
+        const utcDate = new Date(d.hour + ":00:00Z");
+        const pstDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+        const pstDateStr = pstDate.toISOString().slice(0, 10);
+        dailyCosts.set(pstDateStr, (dailyCosts.get(pstDateStr) || 0) + d.cost);
+      }
+      
+      // Loop from 6 days ago (oldest) to today (newest) in PST
       for (let daysAgo = 6; daysAgo >= 0; daysAgo--) {
-        const date = new Date(now);
+        const date = new Date(nowPST);
         date.setDate(date.getDate() - daysAgo);
-        const datePrefix = date.toISOString().slice(0, 10);
-        const dayData = sortedData.filter(d => d.hour.startsWith(datePrefix));
-        const dayCost = dayData.reduce((sum, d) => sum + d.cost, 0);
+        const dateStr = date.toISOString().slice(0, 10);
+        const dayCost = dailyCosts.get(dateStr) || 0;
         data.push({ 
           label: days[date.getDay()], 
           cost: Math.round(dayCost * 100) / 100 
         });
       }
-      // data[0] = 6 days ago (left), data[6] = today (right) ✓
       return data;
     }
     
     case "month":
     case "total": {
-      // Group by day, oldest on left, newest on right
+      // Group by PST day, oldest on left, newest on right
       const dailyMap = new Map<string, number>();
       for (const d of sortedData) {
-        const dateKey = d.hour.slice(0, 10);
+        const utcDate = new Date(d.hour + ":00:00Z");
+        const pstDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+        const dateKey = pstDate.toISOString().slice(0, 10);
         dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + d.cost);
       }
       
       // Convert to array sorted by date (oldest first = left)
       const dates = [...dailyMap.keys()].sort();
       return dates.slice(-14).map(dateStr => {
-        const date = new Date(dateStr);
+        const date = new Date(dateStr + "T00:00:00");
         const label = `${date.getMonth() + 1}/${date.getDate()}`;
         return { label, cost: Math.round((dailyMap.get(dateStr) || 0) * 100) / 100 };
       });

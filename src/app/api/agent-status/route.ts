@@ -102,7 +102,7 @@ export async function GET() {
 
     // Ultimate fallback
     return NextResponse.json({
-      activeModel: "nvidia/moonshotai/kimi-k2.5",
+      activeModel: "anthropic/claude-sonnet-4-5",
       models: DEFAULT_MODELS,
       lastUpdated: new Date().toISOString(),
       source: "fallback_default",
