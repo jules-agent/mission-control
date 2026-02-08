@@ -4,6 +4,7 @@ import { authOptions } from "../api/auth/auth-options";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import FeedbackButtons from "./FeedbackButtons";
+import { RefreshNewsButton } from "./RefreshNewsButton";
 
 // Force dynamic rendering on Vercel
 export const dynamic = "force-dynamic";
@@ -112,6 +113,7 @@ export default async function NewsPage() {
             </h1>
             <p className="text-xs text-slate-500">{today}</p>
           </div>
+          <RefreshNewsButton />
         </div>
 
         {briefings.length === 0 ? (

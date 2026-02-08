@@ -137,6 +137,8 @@ export function SpaceXHeader() {
                 </span>
                 <Link
                   href="/news"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-colors cursor-pointer"
                 >
                   📰 NEWS
