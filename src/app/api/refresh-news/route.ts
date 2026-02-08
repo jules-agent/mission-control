@@ -231,6 +231,26 @@ function deduplicateArticles(
   return kept;
 }
 
+// --- HTML ENTITY DECODING ---
+
+const HTML_ENTITIES: Record<string, string> = {
+  "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"',
+  "&apos;": "'", "&ndash;": "–", "&mdash;": "—", "&lsquo;": "\u2018",
+  "&rsquo;": "\u2019", "&ldquo;": "\u201C", "&rdquo;": "\u201D",
+  "&hellip;": "…", "&trade;": "™", "&copy;": "©", "&reg;": "®",
+  "&nbsp;": " ",
+};
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    // Named entities
+    .replace(/&\w+;/g, (m) => HTML_ENTITIES[m] || m)
+    // Numeric decimal entities (&#8217; etc.)
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+    // Numeric hex entities (&#x2019; etc.)
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)));
+}
+
 // --- RSS PARSING ---
 
 function extractFromXml(xml: string, maxItems = 5): Array<{ title: string; summary: string; url: string; imageUrl: string | null }> {
@@ -242,7 +262,7 @@ function extractFromXml(xml: string, maxItems = 5): Array<{ title: string; summa
     const block = match[1];
 
     const titleMatch = block.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
-    const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "";
+    const title = titleMatch ? decodeHtmlEntities(titleMatch[1].replace(/<[^>]+>/g, "").trim()) : "";
     if (!title) continue;
     if (SKIP_PATTERNS.test(title)) continue;
 
@@ -256,7 +276,7 @@ function extractFromXml(xml: string, maxItems = 5): Array<{ title: string; summa
       block.match(/<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i) ||
       block.match(/<summary[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/summary>/i) ||
       block.match(/<content[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content>/i);
-    let summary = descMatch ? descMatch[1].replace(/<[^>]+>/g, "").trim() : "";
+    let summary = descMatch ? decodeHtmlEntities(descMatch[1].replace(/<[^>]+>/g, "").trim()) : "";
     summary = summary.substring(0, 300);
 
     let imageUrl: string | null = null;
@@ -355,6 +375,63 @@ export async function POST() {
   try {
     const today = new Date().toISOString().split("T")[0];
 
+    // 0. Fix existing HTML entities in DB (retroactive decode)
+    const { data: allExisting } = await supabase
+      .from("news_briefings")
+      .select("id, title, summary")
+      .or("title.like.%&#%,summary.like.%&#%");
+    
+    if (allExisting && allExisting.length > 0) {
+      console.log(`🔧 Fixing HTML entities in ${allExisting.length} existing articles...`);
+      for (const row of allExisting) {
+        const fixedTitle = decodeHtmlEntities(row.title || "");
+        const fixedSummary = decodeHtmlEntities(row.summary || "");
+        if (fixedTitle !== row.title || fixedSummary !== row.summary) {
+          await supabase.from("news_briefings").update({ title: fixedTitle, summary: fixedSummary }).eq("id", row.id);
+        }
+      }
+      console.log(`✅ Fixed HTML entities in existing articles`);
+    }
+
+    // 0b. Fetch user feedback for filtering
+    const { data: feedbackData } = await supabase
+      .from("news_feedback")
+      .select("article_url, article_title, category, vote, comment");
+    
+    const downvotedUrls = new Set<string>();
+    const downvotedTitleWords = new Set<string>();
+    const downvotedCategories: Record<string, { up: number; down: number }> = {};
+    const avoidKeywords = new Set<string>();
+
+    for (const fb of (feedbackData || [])) {
+      // Track category sentiment
+      if (!downvotedCategories[fb.category]) downvotedCategories[fb.category] = { up: 0, down: 0 };
+      downvotedCategories[fb.category][fb.vote as "up" | "down"]++;
+
+      if (fb.vote === "down") {
+        // Exact URL block
+        if (fb.article_url) downvotedUrls.add(normalizeUrl(fb.article_url));
+        
+        // Extract significant words from downvoted titles for topic avoidance
+        if (fb.article_title) {
+          const words = normalizeTitle(fb.article_title).split(" ").filter(w => w.length > 4);
+          words.forEach(w => downvotedTitleWords.add(w));
+        }
+
+        // Extract keywords from feedback comments
+        if (fb.comment) {
+          const noteWords = fb.comment.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((w: string) => w.length > 3);
+          noteWords.forEach((w: string) => avoidKeywords.add(w));
+        }
+      }
+    }
+
+    const downvotedCount = downvotedUrls.size;
+    if (downvotedCount > 0) {
+      console.log(`📊 Feedback loaded: ${downvotedCount} downvoted URLs, ${downvotedTitleWords.size} topic words to avoid`);
+      if (avoidKeywords.size > 0) console.log(`📝 Avoid keywords from notes: ${[...avoidKeywords].join(", ")}`);
+    }
+
     // 1. Fetch previously served stories from past 7 days for dedup
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
     const { data: previousStories } = await supabase
@@ -391,13 +468,48 @@ export async function POST() {
       );
     }
 
-    // 4. Score every article for relevance
+    // 4. Score every article for relevance + apply feedback filtering
+    let feedbackFiltered = 0;
     const scored: ScoredArticle[] = allArticles
       .map((a) => {
         const { score, reason } = scoreArticle(a);
         return { ...a, relevance_score: score, why_relevant: reason };
       })
-      .filter((a) => a.relevance_score > 0); // Remove filtered articles (score -1)
+      .filter((a) => a.relevance_score > 0) // Remove filtered articles (score -1)
+      .filter((a) => {
+        // Skip exact downvoted URLs
+        if (downvotedUrls.has(normalizeUrl(a.url))) {
+          console.log(`🚫 Filtered (downvoted URL): ${a.title}`);
+          feedbackFiltered++;
+          return false;
+        }
+        // Skip articles with high word overlap with downvoted titles
+        if (downvotedTitleWords.size > 0) {
+          const words = normalizeTitle(a.title).split(" ").filter(w => w.length > 4);
+          const overlap = words.filter(w => downvotedTitleWords.has(w)).length;
+          if (words.length > 0 && overlap / words.length > 0.5) {
+            console.log(`🚫 Filtered (similar to downvoted): ${a.title}`);
+            feedbackFiltered++;
+            return false;
+          }
+        }
+        // Skip articles matching avoid keywords from feedback notes
+        if (avoidKeywords.size > 0) {
+          const text = `${a.title} ${a.summary}`.toLowerCase();
+          const matched = [...avoidKeywords].filter(kw => text.includes(kw));
+          if (matched.length >= 2) {
+            console.log(`🚫 Filtered (feedback keywords: ${matched.join(", ")}): ${a.title}`);
+            feedbackFiltered++;
+            return false;
+          }
+        }
+        // Deprioritize heavily downvoted categories (>70% downvotes with 3+ votes)
+        const catFb = downvotedCategories[a.category];
+        if (catFb && catFb.down + catFb.up >= 3 && catFb.down / (catFb.down + catFb.up) > 0.7) {
+          a.relevance_score = Math.round(a.relevance_score * 0.5);
+        }
+        return true;
+      });
 
     // 5. Deduplicate against past stories AND within batch
     const deduped = deduplicateArticles(scored, previousTitles, previousUrls);
@@ -446,7 +558,7 @@ export async function POST() {
     const dupsAfter = finalArticles.length;
     const dupsRemoved = dupsBefore - dupsAfter;
 
-    console.log(`✅ Refreshed ${data.length} articles in ${elapsed}s (${dupsRemoved} duplicates/filtered removed)`);
+    console.log(`✅ Refreshed ${data.length} articles in ${elapsed}s (${dupsRemoved} duplicates/filtered removed, ${feedbackFiltered} feedback-filtered)`);
 
     // Return relevance data for the API response (used by news page)
     return NextResponse.json({
@@ -460,6 +572,7 @@ export async function POST() {
         after_scoring: scored.length,
         after_dedup: dupsAfter,
         removed: dupsRemoved,
+        feedback_filtered: feedbackFiltered,
       },
       // Store relevance metadata keyed by URL for the news page to use
       relevance: Object.fromEntries(
