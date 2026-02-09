@@ -22,9 +22,59 @@ const parser = new Parser({
   }
 });
 
+// Ben's portfolio tickers (from memory/portfolio.md) — filter stocks category to these only
+const PORTFOLIO_TICKERS = [
+  // AI & Tech
+  'NVDA', 'MSFT', 'GOOG', 'AAPL', 'AMZN', 'TSM', 'SMCI', 'PLTR', 'ARKK', 'AIPO', 'RONB', 'VUG',
+  // Crypto & Blockchain
+  'BTC', 'ETH', 'IBIT', 'ETHA', 'MSTR', 'MTPLF', 'CIFR', 'MARA', 'IREN',
+  // EV & Future Tech
+  'TSLA', 'RIVN', 'LCID',
+  // Space
+  'ASTS', 'RKLB',
+  // Scarce Materials
+  'TLOFF', 'TMC', 'IAU', 'SLV', 'STLD', 'NLR',
+  // High Dividend
+  'SCHD', 'DVY', 'JEPI', 'QYLD', 'NUSI', 'PTY', 'JNK', 'PGF', 'PGX', 'QQQX', 'BIZD', 'ARCC', 'MPW', 'BXSL',
+  // Real Estate
+  'IYR', 'VNQ', 'VNQI', 'VICI', 'IIPR',
+  // Market ETFs
+  'SPY', 'VTSAX', 'VWO', 'SGOV', 'LQD',
+  // Other
+  'DIS', 'NFLX', 'BABA', 'ABBV', 'GME', 'RKT', 'IBB', 'ASG', 'ETW', 'ETG', 'PSP', 'UTF', 'NMZ', 'HIX', 'THQ', 'STRC', 'HOOW'
+];
+
+// Macro market keywords (always relevant even if ticker not in portfolio)
+const MACRO_KEYWORDS = ['fed', 'federal reserve', 'interest rate', 'inflation', 'cpi', 'ppi', 'jobs report', 'unemployment', 'gdp', 'recession', 'bull market', 'bear market', 'sp 500', 's&p 500', 'dow jones', 'nasdaq', 'treasury', 'bond yield', 'market crash', 'market rally'];
+
 // Relevancy engine — matches Ben's interests without AI tokens
 function getRelevancy(title, snippet, category) {
   const t = (title + ' ' + snippet).toLowerCase();
+  
+  // GLOBAL FILTERS: Skip unwanted content across all categories
+  if (/\be[-\s]?bike|e[-\s]?scooter|electric\s+bike|electric\s+scooter/i.test(t)) {
+    return null; // No e-bikes
+  }
+  if (/\bgaming|gamer|playstation|ps5|xbox|nintendo|switch\s+2|video\s+game/i.test(t)) {
+    return null; // No gaming content
+  }
+  if (category === 'la_food' && /\bpizza\s+hut|mcdonald|burger\s+king|taco\s+bell|wendy|kfc|subway|chipotle/i.test(t)) {
+    return null; // No mainstream chains
+  }
+  
+  // FILTER: For stocks category, only allow portfolio tickers or macro news
+  if (category === 'stocks') {
+    const hasMacro = MACRO_KEYWORDS.some(kw => t.includes(kw));
+    const hasPortfolioTicker = PORTFOLIO_TICKERS.some(ticker => {
+      const regex = new RegExp(`\\b${ticker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return regex.test(t);
+    });
+    
+    if (!hasMacro && !hasPortfolioTicker) {
+      return null; // Skip this article — not relevant
+    }
+  }
+  
   const parts = [];
   
   // Add the actual article snippet first (trimmed)
@@ -161,6 +211,9 @@ async function fetchFeed(feedConfig) {
       const snippet = (item.contentSnippet || item.content || '').replace(/<[^>]+>/g, '').substring(0, 300);
       const relevancy = getRelevancy(title, snippet, feedConfig.category);
       
+      // Skip articles that didn't pass relevancy filter (returns null)
+      if (relevancy === null) return null;
+      
       return {
         category: feedConfig.category,
         title,
@@ -169,7 +222,7 @@ async function fetchFeed(feedConfig) {
         source: feedConfig.source,
         image_url: null // skip thumbnails — text only
       };
-    });
+    }).filter(a => a !== null); // Remove nulls
 
     console.log(`  ✅ ${articles.length} articles`);
     return articles;
