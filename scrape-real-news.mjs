@@ -58,8 +58,8 @@ function getRelevancy(title, snippet, category) {
   if (/\bgaming|gamer|playstation|ps5|xbox|nintendo|switch\s+2|video\s+game/i.test(t)) {
     return null; // No gaming content
   }
-  if (category === 'la_food' && /\bpizza\s+hut|mcdonald|burger\s+king|taco\s+bell|wendy|kfc|subway|chipotle/i.test(t)) {
-    return null; // No mainstream chains
+  if (category === 'entertainment' && /\bpizza\s+hut|mcdonald|burger\s+king|taco\s+bell|wendy|kfc|subway|chipotle/i.test(t)) {
+    return null; // No mainstream food chains
   }
   
   // FILTER: For stocks category, only allow portfolio tickers or macro news
@@ -119,13 +119,19 @@ function getRelevancy(title, snippet, category) {
   if (/auction|rare|limited|allocat/i.test(t)) tags.push('🔥 Scarcity play — act fast if under $1,200');
   if (/cask.?strength|single.?cask|independent.?bottl/i.test(t)) tags.push('💎 IB/cask strength — your sweet spot');
   
-  // LA Food
+  // Entertainment: LA Food
   if (/korean|bbq|kbbq/i.test(t)) tags.push('🔥 Your favorite — Korean BBQ alert');
   if (/japanese|ramen|sushi|omakase/i.test(t)) tags.push('🍣 Japanese food — right up your alley');
   if (/venice|santa.?monica|mar.?vista|culver/i.test(t)) tags.push('📍 Near home — worth checking out');
   if (/hawthorne|inglewood|lax/i.test(t)) tags.push('📍 Near work — lunch spot potential');
   if (/keto|low.?carb|meat|steak|lamb|brisket/i.test(t)) tags.push('✅ Keto-friendly option');
   if (/open|new|debut/i.test(t)) tags.push('🆕 New opening — try before it gets packed');
+  
+  // Entertainment: Music (Hip-Hop)
+  if (/biggie|notorious|black\s+thought|mos\s+def|the\s+roots|apathy|clipse|nas\b|big\s+l|dj\s+premier|jay[-\s]?z|ra\s+the\s+rugged|murs\b/i.test(t)) tags.push('🎤 Your favorite artists — check this');
+  if (/underground\s+hip[-\s]?hop|boom[-\s]?bap|90s\s+rap|lyrical\s+rap/i.test(t)) tags.push('🎧 Your style — underground/lyrical hip-hop');
+  if (/album|release|mixtape|ep\b|single/i.test(t) && /hip[-\s]?hop|rap\b/i.test(t)) tags.push('🎵 New music drop');
+  if (/tour|concert|live\s+show/i.test(t) && /los\s+angeles|la\b|hollywood|santa\s+monica/i.test(t)) tags.push('🎟️ LA show — your area');
   
   // Business/Fleet (avoid using company names in tags to prevent false positives)
   if (/police|law.?enforce|public.?safety/i.test(t)) tags.push('🚨 Target customer — gov/police fleet');
@@ -142,7 +148,7 @@ function getRelevancy(title, snippet, category) {
       tesla_ev: '⚡ EV market intel — monitor for impact',
       stocks: '📈 Market signal — check portfolio exposure',
       tech: '🤖 Tech trend — potential business application',
-      la_food: '🍽️ LA dining scene — potential spot to try',
+      entertainment: '🎭 LA scene — food, music, culture',
       whisky: '🥃 Whisky market — investment/collecting intel',
       business: '💡 Business/auto industry intel'
     };
@@ -176,9 +182,12 @@ const feeds = [
   { url: 'https://www.theverge.com/rss/index.xml', category: 'tech', source: 'The Verge', max: 4 },
   { url: 'https://arstechnica.com/feed/', category: 'tech', source: 'Ars Technica', max: 4 },
 
-  // LA Food (2 sources)
-  { url: 'https://la.eater.com/rss/index.xml', category: 'la_food', source: 'Eater LA', max: 5 },
-  { url: 'https://www.latimes.com/food/rss2.0.xml', category: 'la_food', source: 'LA Times Food', max: 3 },
+  // Entertainment & Food (5 sources: LA food, hip-hop, music, movies/TV)
+  { url: 'https://la.eater.com/rss/index.xml', category: 'entertainment', source: 'Eater LA', max: 4 },
+  { url: 'https://www.latimes.com/food/rss2.0.xml', category: 'entertainment', source: 'LA Times Food', max: 2 },
+  { url: 'https://www.hotnewhiphop.com/rss', category: 'entertainment', source: 'HotNewHipHop', max: 4 },
+  { url: 'https://www.xxlmag.com/feed/', category: 'entertainment', source: 'XXL Magazine', max: 3 },
+  { url: 'https://pitchfork.com/rss/reviews/albums/', category: 'entertainment', source: 'Pitchfork', max: 3 },
 
   // Whisky — use r/Scotch and r/whiskey RSS
   { url: 'https://old.reddit.com/r/Scotch/.rss', category: 'whisky', source: 'r/Scotch', max: 5 },

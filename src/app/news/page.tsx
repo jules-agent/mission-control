@@ -36,7 +36,7 @@ const categoryConfig = {
   stocks: { name: "Finance & Investing", icon: "📈", color: "from-green-500 to-emerald-500" },
   whisky: { name: "Whisky Investing", icon: "🥃", color: "from-amber-500 to-orange-600" },
   tech: { name: "Technology & AI", icon: "🤖", color: "from-purple-500 to-pink-500" },
-  la_food: { name: "LA Food & Culture", icon: "🌮", color: "from-red-500 to-rose-500" },
+  entertainment: { name: "Entertainment & Food", icon: "🎭", color: "from-red-500 to-rose-500" },
   business: { name: "Business Ideas", icon: "💡", color: "from-indigo-500 to-blue-600" },
 };
 
@@ -93,7 +93,7 @@ async function getBriefingData(): Promise<BriefingData[]> {
     else {
       const cs: Record<string, [number, string]> = {
         tesla_ev: [60, "EV/Tesla industry"], stocks: [40, "Markets/investing"],
-        whisky: [35, "Whisky"], tech: [30, "Tech/AI"], la_food: [25, "LA scene"], business: [20, "Business"],
+        whisky: [35, "Whisky"], tech: [30, "Tech/AI"], entertainment: [25, "Entertainment/LA scene"], business: [20, "Business"],
       };
       const [s, w] = cs[article.category] || [15, "General news"];
       relevance_score = s; why_relevant = w;
