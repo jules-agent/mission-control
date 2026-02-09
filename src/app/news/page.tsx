@@ -33,8 +33,7 @@ interface BriefingData {
 
 const categoryConfig = {
   tesla_ev: { name: "Tesla & EV", icon: "⚡", color: "from-blue-500 to-cyan-500" },
-  crypto: { name: "Crypto & Bitcoin", icon: "₿", color: "from-orange-500 to-yellow-500" },
-  stocks: { name: "Stocks & Markets", icon: "📈", color: "from-green-500 to-emerald-500" },
+  stocks: { name: "Finance & Investing", icon: "📈", color: "from-green-500 to-emerald-500" },
   whisky: { name: "Whisky Investing", icon: "🥃", color: "from-amber-500 to-orange-600" },
   tech: { name: "Technology & AI", icon: "🤖", color: "from-purple-500 to-pink-500" },
   la_food: { name: "LA Food & Culture", icon: "🌮", color: "from-red-500 to-rose-500" },
@@ -69,7 +68,10 @@ async function getBriefingData(): Promise<BriefingData[]> {
 
   // Enrich with relevance scores
   const enriched = (data || []).map((article) => {
-    const text = `${article.title} ${article.summary}`;
+    // Strip relevancy tags from summary before checking for company mentions
+    // Tags are appended after " — " with emoji patterns
+    const cleanSummary = (article.summary || "").split(" — ")[0];
+    const text = `${article.title} ${cleanSummary}`;
     let relevance_score = 15;
     let why_relevant = "General news";
 

@@ -34,15 +34,15 @@ function getRelevancy(title, snippet, category) {
   // Then add personalized relevancy note
   const tags = [];
   
-  // Tesla / Unplugged Performance relevancy
-  if (/tesla|cybertruck|model [s3xy]|supercharger/i.test(t)) tags.push('🎯 Direct UP opportunity — aftermarket parts & service');
-  if (/fsd|autopilot|self.?driv/i.test(t)) tags.push('🎯 FSD progress affects UP customer base');
-  if (/battery|range|charging/i.test(t)) tags.push('⚡ Battery/range tech — affects UP performance builds');
-  if (/delivery|production|factory/i.test(t)) tags.push('📊 Production volume = more UP customers');
+  // Tesla / Unplugged Performance relevancy (avoid using "UP" in tags to prevent false positives)
+  if (/tesla|cybertruck|model [s3xy]|supercharger/i.test(t)) tags.push('🎯 Direct opportunity — aftermarket parts & service');
+  if (/fsd|autopilot|self.?driv/i.test(t)) tags.push('🎯 FSD progress affects customer base');
+  if (/battery|range|charging/i.test(t)) tags.push('⚡ Battery/range tech — affects performance builds');
+  if (/delivery|production|factory/i.test(t)) tags.push('📊 Production volume = more customers');
   
   // EV competition
   if (/rivian|lucid|polestar|byd|nio/i.test(t)) tags.push('👀 Competitor watch — EV market dynamics');
-  if (/ev.*(fleet|commercial|police|government)/i.test(t)) tags.push('🚨 UP.FIT opportunity — fleet/gov EV adoption');
+  if (/ev.*(fleet|commercial|police|government)/i.test(t)) tags.push('🚨 Fleet opportunity — fleet/gov EV adoption');
   
   // Crypto relevancy
   if (/bitcoin|btc/i.test(t)) tags.push('₿ Portfolio watch — BTC position');
@@ -57,10 +57,10 @@ function getRelevancy(title, snippet, category) {
   if (/crash|selloff|correction|bear/i.test(t)) tags.push('⚠️ Risk alert — review exposure');
   if (/rally|surge|bull|record/i.test(t)) tags.push('📈 Momentum signal — opportunity window');
   
-  // Tech/AI
-  if (/ai\b|artificial.?intel|llm|gpt|claude|openai/i.test(t)) tags.push('🤖 AI advancement — automation opportunity for UP operations');
-  if (/drone|uav/i.test(t)) tags.push('🚨 UP.FIT direct — Skydio/drone partnership relevance');
-  if (/autonom|self.?driv/i.test(t)) tags.push('🎯 UP.FIT fleet automation angle');
+  // Tech/AI (avoid using company names in tags to prevent false positives)
+  if (/ai\b|artificial.?intel|llm|gpt|claude|openai/i.test(t)) tags.push('🤖 AI advancement — automation opportunity');
+  if (/drone|uav/i.test(t)) tags.push('🚨 Drone tech — Skydio/partnership relevance');
+  if (/autonom|self.?driv/i.test(t)) tags.push('🎯 Fleet automation angle');
   if (/apple|google|meta|amazon/i.test(t)) tags.push('📊 Big Tech signal — portfolio/market indicator');
   
   // Whisky
@@ -77,19 +77,19 @@ function getRelevancy(title, snippet, category) {
   if (/keto|low.?carb|meat|steak|lamb|brisket/i.test(t)) tags.push('✅ Keto-friendly option');
   if (/open|new|debut/i.test(t)) tags.push('🆕 New opening — try before it gets packed');
   
-  // Business/Fleet
-  if (/police|law.?enforce|public.?safety/i.test(t)) tags.push('🚨 UP.FIT target customer — gov/police');
-  if (/fleet|commercial.?vehicle/i.test(t)) tags.push('🎯 UP.FIT fleet market intel');
-  if (/jdm|import|nsx|supra|gtr|r3[245]/i.test(t)) tags.push('🏎️ Bulletproof Automotive — JDM market');
-  if (/koenigsegg/i.test(t)) tags.push('🤝 UP manufacturing partner mention');
+  // Business/Fleet (avoid using company names in tags to prevent false positives)
+  if (/police|law.?enforce|public.?safety/i.test(t)) tags.push('🚨 Target customer — gov/police fleet');
+  if (/fleet|commercial.?vehicle/i.test(t)) tags.push('🎯 Fleet market intel');
+  if (/jdm|import|nsx|supra|gtr|r3[245]/i.test(t)) tags.push('🏎️ JDM market opportunity');
+  if (/koenigsegg/i.test(t)) tags.push('🤝 Manufacturing partner mention');
   
   // Elon / SpaceX
-  if (/elon|musk|spacex/i.test(t)) tags.push('🚀 Elon/SpaceX — ecosystem signal for UP');
+  if (/elon|musk|spacex/i.test(t)) tags.push('🚀 Elon/SpaceX — ecosystem signal');
   
-  // Default if no specific tags matched
+  // Default if no specific tags matched (avoid company names in tags)
   if (tags.length === 0) {
     const catDefaults = {
-      tesla_ev: '⚡ EV market intel — monitor for UP impact',
+      tesla_ev: '⚡ EV market intel — monitor for impact',
       crypto: '📊 Crypto market movement — portfolio awareness',
       stocks: '📈 Market signal — check portfolio exposure',
       tech: '🤖 Tech trend — potential business application',
@@ -113,10 +113,10 @@ const feeds = [
   { url: 'https://www.teslarati.com/feed/', category: 'tesla_ev', source: 'Teslarati', max: 4 },
   { url: 'https://insideevs.com/rss/news/all/', category: 'tesla_ev', source: 'InsideEVs', max: 4 },
 
-  // Crypto (3 sources)
-  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', category: 'crypto', source: 'CoinDesk', max: 5 },
-  { url: 'https://cointelegraph.com/rss', category: 'crypto', source: 'CoinTelegraph', max: 5 },
-  { url: 'https://decrypt.co/feed', category: 'crypto', source: 'Decrypt', max: 4 },
+  // Crypto (3 sources) — grouped as 'stocks' since it's investment content
+  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', category: 'stocks', source: 'CoinDesk', max: 2 },
+  { url: 'https://cointelegraph.com/rss', category: 'stocks', source: 'CoinTelegraph', max: 2 },
+  { url: 'https://decrypt.co/feed', category: 'stocks', source: 'Decrypt', max: 2 },
 
   // Stocks/Finance (2 sources)
   { url: 'https://finance.yahoo.com/news/rssindex', category: 'stocks', source: 'Yahoo Finance', max: 5 },
