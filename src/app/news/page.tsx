@@ -92,7 +92,7 @@ async function getBriefingData(): Promise<BriefingData[]> {
     else if (/\bcrypto\b/i.test(text)) { relevance_score = 50; why_relevant = "Crypto market"; }
     else {
       const cs: Record<string, [number, string]> = {
-        tesla_ev: [60, "EV/Tesla industry"], crypto: [45, "Crypto market"], stocks: [40, "Markets"],
+        tesla_ev: [60, "EV/Tesla industry"], stocks: [40, "Markets/investing"],
         whisky: [35, "Whisky"], tech: [30, "Tech/AI"], la_food: [25, "LA scene"], business: [20, "Business"],
       };
       const [s, w] = cs[article.category] || [15, "General news"];

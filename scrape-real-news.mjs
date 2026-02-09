@@ -90,7 +90,6 @@ function getRelevancy(title, snippet, category) {
   if (tags.length === 0) {
     const catDefaults = {
       tesla_ev: '⚡ EV market intel — monitor for impact',
-      crypto: '📊 Crypto market movement — portfolio awareness',
       stocks: '📈 Market signal — check portfolio exposure',
       tech: '🤖 Tech trend — potential business application',
       la_food: '🍽️ LA dining scene — potential spot to try',
