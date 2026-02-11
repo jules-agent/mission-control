@@ -3,11 +3,11 @@
     {
       "id": "proj-home-security-001",
       "title": "🏠 Home Security System Project",
-      "description": "Build comprehensive home security solution for 2822 Clune Ave Venice.\n\n## Requirements:\n- **Google Home integration** - Connect with existing Google Home devices\n- **Native Jules alerts** - Text-to-Jules from Google Home settings for warnings\n- **Intelligent filtering** - Jules interprets which warnings to escalate to Ben vs silence\n- **Abode integration** - Integrate with Abode security system API\n\n## Key Decisions Needed:\n- Alert escalation rules (what constitutes urgent vs routine)\n- Quiet hours handling (11pm-6am - escalate only for true emergencies)\n- Integration with existing Jules memory/reminders",
+      "description": "Build comprehensive home security solution for 2822 Clune Ave Venice.\n\n## Requirements:\n- **Google Home integration** - Connect with existing Google Home devices\n- **Native Jules alerts** - Text-to-Jules from Google Home settings for warnings\n- **Intelligent filtering** - Jules interprets which warnings to escalate to Ben vs silence\n- **Abode integration** - Integrate with Abode security system API\n\n## Progress (Feb 11, 4:00 AM):\n✅ Created comprehensive implementation plan at `projects/home-security/PLAN.md`\n✅ Researched Abode API integration approach\n✅ Designed alert escalation rules (auto-escalate, silent, smart context)\n✅ Mapped 5-phase implementation (~5-6 weeks total)\n✅ Documented blockers and open questions\n\n## Blockers:\n- Need Abode account credentials for API access\n- Need details on existing Google Home device setup\n\n## Next Steps:\n- Ask Ben for Abode login\n- Document existing Google Home layout\n- Begin Phase 1: Abode API connection",
       "priority": "medium",
-      "status": "todo",
+      "status": "in-progress",
       "createdAt": "2/5/2026, 8:29 PM",
-      "updatedAt": "2/6/2026, 11:19 AM",
+      "updatedAt": "2/11/2026, 4:00 AM",
       "rank": 0,
       "source": "jules"
     },
