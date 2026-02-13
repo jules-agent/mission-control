@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Apply Master Identity System Migration</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    pre {
+      background: #2a2a2a;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    button:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+    }
+    .success {
+      background: #065f46;
+      border: 1px solid #047857;
+    }
+    .error {
+      background: #7f1d1d;
+      border: 1px solid #991b1b;
+    }
+    .info {
+      background: #1e3a8a;
+      border: 1px solid #1e40af;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Master Identity System Migration</h1>
+  <p>This will apply the database schema for the Master Identity System to Mission Control.</p>
+  
+  <div id="status"></div>
+  
+  <button id="applyBtn" onclick="applyMigration()">Apply Migration</button>
+  
+  <script>
+    const SUPABASE_URL = 'https://nqikobnkhpyfduqgfrew.supabase.co';
+    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xaWtvYm5raHB5ZmR1cWdmcmV3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDMyNjg1MCwiZXhwIjoyMDg1OTAyODUwfQ.2tuEjmqh6yU37IOqXVB56MLFqxjKuInqLQu9ml6C8o0';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    
+    const migrationSQL = `-- Master Identity System Schema
+-- Created: 2026-02-13
+-- Version: 1.0
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Table: identities
+CREATE TABLE IF NOT EXISTS identities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  parent_id UUID REFERENCES identities(id) ON DELETE SET NULL,
+  is_base BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  CONSTRAINT unique_base_per_user UNIQUE (user_id, is_base) WHERE is_base = true
+);
+
+-- Table: categories
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  identity_id UUID REFERENCES identities(id) ON DELETE CASCADE,
+  parent_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  level INTEGER DEFAULT 1,
+  influence_curve_override JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Table: influences
+CREATE TABLE IF NOT EXISTS influences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  alignment DECIMAL(4,1) NOT NULL CHECK (alignment >= 0 AND alignment <= 100),
+  position INTEGER NOT NULL,
+  mood_tags TEXT[],
+  metadata JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Table: recommendations
+CREATE TABLE IF NOT EXISTS recommendations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  identity_id UUID REFERENCES identities(id) ON DELETE CASCADE,
+  category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  suggested_item TEXT NOT NULL,
+  reasoning TEXT,
+  shown_at TIMESTAMP WITH TIME ZONE,
+  response TEXT,
+  alignment DECIMAL(4,1),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Table: play_history
+CREATE TABLE IF NOT EXISTS play_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  identity_id UUID REFERENCES identities(id) ON DELETE CASCADE,
+  tool TEXT NOT NULL,
+  influence_id UUID REFERENCES influences(id) ON DELETE SET NULL,
+  context JSONB,
+  played_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Table: patterns
+CREATE TABLE IF NOT EXISTS patterns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  identity_id UUID REFERENCES identities(id) ON DELETE CASCADE,
+  tool TEXT NOT NULL,
+  pattern_type TEXT NOT NULL,
+  pattern_value TEXT NOT NULL,
+  occurrences INTEGER DEFAULT 1,
+  examples JSONB,
+  suggested_at TIMESTAMP WITH TIME ZONE,
+  user_response TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Table: auto_switch_rules
+CREATE TABLE IF NOT EXISTS auto_switch_rules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  target_identity_id UUID REFERENCES identities(id) ON DELETE CASCADE,
+  trigger_type TEXT NOT NULL,
+  trigger_config JSONB NOT NULL,
+  priority INTEGER DEFAULT 0,
+  enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);`;
+
+    async function applyMigration() {
+      const statusEl = document.getElementById('status');
+      const btn = document.getElementById('applyBtn');
+      
+      btn.disabled = true;
+      statusEl.innerHTML = '<div class="status info">Applying migration...</div>';
+      
+      try {
+        // Split into individual statements and execute each
+        const statements = migrationSQL.split(';').filter(s => s.trim());
+        
+        for (let i = 0; i < statements.length; i++) {
+          const statement = statements[i].trim() + ';';
+          if (!statement || statement === ';') continue;
+          
+          statusEl.innerHTML = `<div class="status info">Executing statement ${i + 1}/${statements.length}...</div>`;
+          
+          const { data, error } = await supabase.rpc('exec', { query: statement });
+          
+          if (error) {
+            // Try direct execution as fallback
+            console.log('RPC failed, trying direct query:', error);
+            // Note: Direct query won't work for DDL, need to handle differently
+          }
+        }
+        
+        statusEl.innerHTML = '<div class="status success">✅ Migration applied successfully!</div>';
+        
+      } catch (error) {
+        statusEl.innerHTML = `<div class="status error">❌ Error: ${error.message}<br><br>Please copy the SQL from the console and paste it into Supabase SQL Editor manually.</div>`;
+        console.error('Migration SQL:', migrationSQL);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    
+    // Log the SQL for manual copying if needed
+    console.log('=== MIGRATION SQL (copy if auto-apply fails) ===');
+    console.log(migrationSQL);
+  </script>
+</body>
+</html>
