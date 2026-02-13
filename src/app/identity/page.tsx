@@ -37,12 +37,31 @@ export default function IdentityPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [influences, setInfluences] = useState<Record<string, Influence[]>>({});
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   const supabase = createClient();
 
   useEffect(() => {
-    loadIdentities();
+    checkAuth();
   }, []);
+
+  async function checkAuth() {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      window.location.href = '/identity/login';
+      return;
+    }
+    
+    setUser(user);
+    loadIdentities();
+  }
+
+  useEffect(() => {
+    if (user) {
+      loadIdentities();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (selectedIdentity) {
@@ -238,6 +257,11 @@ export default function IdentityPage() {
     }
   }
 
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    window.location.href = '/identity/login';
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -246,22 +270,37 @@ export default function IdentityPage() {
     );
   }
 
+  if (!user) {
+    return null; // Will redirect to login
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
       <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold">Master Identity System</h1>
-            <button
-              onClick={() => {
-                const name = prompt('Identity name:');
-                if (name) createIdentity(name);
-              }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              + New Identity
-            </button>
+            <div>
+              <h1 className="text-2xl font-semibold">Master Identity System</h1>
+              <p className="text-sm text-zinc-400 mt-1">{user?.email}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  const name = prompt('Identity name:');
+                  if (name) createIdentity(name);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                + New Identity
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
