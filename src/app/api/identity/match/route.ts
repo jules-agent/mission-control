@@ -29,7 +29,7 @@ interface Category {
 }
 
 export async function POST(request: Request) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     const body: MatchRequest = await request.json();

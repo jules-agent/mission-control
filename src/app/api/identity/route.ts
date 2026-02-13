@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const identityId = searchParams.get('id');
   const userId = searchParams.get('user_id');
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     if (identityId) {
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     const body = await request.json();
