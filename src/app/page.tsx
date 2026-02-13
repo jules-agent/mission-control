@@ -8,6 +8,7 @@ import { ModelWorkflowPanel } from "./components/ModelWorkflowPanel";
 import { ApiUsagePanel } from "./components/ApiUsagePanel";
 import { AutomationPanel } from "./components/AutomationPanel";
 import { ProjectsPanel } from "./components/ProjectsPanel";
+import { IdentityPanel } from "./components/IdentityPanel";
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -20,6 +21,9 @@ export default async function HomePage() {
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         {/* SpaceX-style Mission Control header */}
         <SpaceXHeader />
+        
+        {/* Identity Management - NEW */}
+        <IdentityPanel />
         
         {/* Model workflow - full width row */}
         <ModelWorkflowPanel />
