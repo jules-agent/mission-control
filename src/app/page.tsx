@@ -7,6 +7,7 @@ import { TasksPanel } from "./components/TasksPanel";
 import { ModelWorkflowPanel } from "./components/ModelWorkflowPanel";
 import { ApiUsagePanel } from "./components/ApiUsagePanel";
 import { AutomationPanel } from "./components/AutomationPanel";
+import { ProjectsPanel } from "./components/ProjectsPanel";
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -28,6 +29,9 @@ export default async function HomePage() {
           <ApiUsagePanel />
           <StatusPanel />
         </div>
+        
+        {/* Project Accomplishments - full width */}
+        <ProjectsPanel />
         
         {/* Automation Schedule - full width */}
         <AutomationPanel />
