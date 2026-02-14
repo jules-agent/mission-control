@@ -53,11 +53,23 @@ export function CategoryTree({
     });
   }
 
+  function countAllInfluences(category: Category): number {
+    let count = (influences[category.id] || []).length;
+    if (category.subcategories) {
+      for (const sub of category.subcategories) {
+        count += countAllInfluences(sub);
+      }
+    }
+    return count;
+  }
+
   function renderCategory(category: Category, depth: number = 0) {
     const isExpanded = expandedCategories.has(category.id);
     const categoryInfluences = influences[category.id] || [];
     const hasInfluences = categoryInfluences.length > 0;
     const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+    const totalInfluences = countAllInfluences(category);
+    const hasTotalInfluences = totalInfluences > 0;
 
     return (
       <div key={category.id} className="space-y-2">
@@ -76,8 +88,13 @@ export function CategoryTree({
               <span className="text-2xl">{getCategoryIcon(category.type)}</span>
               <div className="text-left">
                 <h3 className="font-semibold">{category.name}</h3>
-                {hasInfluences && (
-                  <p className="text-xs text-zinc-400">{categoryInfluences.length} influences</p>
+                {hasTotalInfluences && (
+                  <p className="text-xs text-zinc-400">
+                    {totalInfluences} influence{totalInfluences !== 1 ? 's' : ''}
+                    {hasSubcategories && categoryInfluences.length !== totalInfluences
+                      ? ` (${categoryInfluences.length} direct, ${totalInfluences - categoryInfluences.length} in subcategories)`
+                      : ''}
+                  </p>
                 )}
               </div>
             </div>
