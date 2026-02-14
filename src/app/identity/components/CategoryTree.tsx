@@ -47,6 +47,8 @@ function getCategoryIcon(type: string): string {
     business: '💼', communication: '💬', entertainment: '🎬', intellectual: '📚',
     daily: '☀️', values: '⭐', parenting: '👶',
     fashion: '👔', brands: '🏷️', aesthetic: '🎨', accessories: '💍',
+    books: '📚', gaming: '🎮', home: '🏠', kitchen: '🍳', fitness: '🏋️',
+    art: '🎨', kids: '🧸', automotive: '🚗', gifts: '🎁',
   };
   return icons[type] || '📁';
 }

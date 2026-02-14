@@ -11,6 +11,7 @@ import { LocationInput } from './components/LocationInput';
 import { PhysicalAttributes } from './components/PhysicalAttributes';
 import { BugReportButton } from '../components/BugReportButton';
 import { ZoomControl } from '../components/ZoomControl';
+import { ShoppingEngine } from './components/ShoppingEngine';
 
 interface Identity {
   id: string;
@@ -55,6 +56,7 @@ export default function IdentityPage() {
   const [prefillInterest, setPrefillInterest] = useState<string | undefined>();
   const [prefillAlignment, setPrefillAlignment] = useState<number | undefined>();
   const [viewingAsUser, setViewingAsUser] = useState<{ email: string; id: string } | null>(null);
+  const [showShopping, setShowShopping] = useState(false);
   const selectedIdRef = useRef<string | null>(null);
 
   const supabase = createClient();
@@ -531,6 +533,15 @@ export default function IdentityPage() {
           </div>
           <div className="flex items-center gap-2">
             <ZoomControl inline />
+            {selectedIdentity && (
+              <button
+                onClick={() => setShowShopping(true)}
+                className="text-[22px] active:opacity-60 transition-opacity"
+                title="Shopping"
+              >
+                🛒
+              </button>
+            )}
             <BugReportButton appName="identity" inline />
             {user?.email === 'ben@unpluggedperformance.com' && !viewingAsUser && (
               <a
@@ -650,6 +661,14 @@ export default function IdentityPage() {
           }}
           initialInterest={prefillInterest}
           initialAlignment={prefillAlignment}
+        />
+      )}
+
+      {/* Shopping Engine */}
+      {showShopping && selectedIdentity && (
+        <ShoppingEngine
+          identityId={selectedIdentity.id}
+          onClose={() => setShowShopping(false)}
         />
       )}
     </div>
