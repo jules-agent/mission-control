@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -9,6 +9,14 @@ const spaceMono = Space_Mono({
   weight: ["400", "700"],
   variable: "--font-space-mono"
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: "Mission Control Dashboard",

@@ -408,7 +408,7 @@ export default function IdentityPage() {
 
       {/* Header */}
       <header className="pt-[env(safe-area-inset-top)] sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-zinc-800/60">
-        <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-md landscape:max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-semibold tracking-tight">Identity</h1>
             <p className="text-[13px] text-zinc-500 mt-0.5">{user?.email}</p>
@@ -425,7 +425,7 @@ export default function IdentityPage() {
         </div>
       </header>
 
-      <div className="max-w-md mx-auto px-4 py-6 pb-[calc(32px+env(safe-area-inset-bottom))]">
+      <div className="max-w-md landscape:max-w-2xl mx-auto px-4 py-6 pb-[calc(32px+env(safe-area-inset-bottom))]">
         {identities.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-zinc-500 text-[17px] mb-6">No identities yet</p>
