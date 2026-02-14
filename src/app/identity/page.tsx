@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CategoryTree } from './components/CategoryTree';
+import { IdentitySwitcher } from './components/IdentitySwitcher';
 
 interface Identity {
   id: string;
@@ -153,10 +154,69 @@ export default function IdentityPage() {
       const { data, error } = await supabase.from('identities').insert({ user_id: user.id, name, is_base: isBase }).select().single();
       if (error) throw error;
       await loadIdentities();
+      if (data) setSelectedIdentity(data);
       return data;
     } catch (error) {
       console.error('Error creating identity:', error);
       throw error;
+    }
+  }
+
+  async function renameIdentity(identity: Identity, newName: string) {
+    try {
+      const response = await fetch('/api/identity', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: identity.id, name: newName })
+      });
+      if (!response.ok) throw new Error('Failed to rename identity');
+      await loadIdentities();
+    } catch (error) {
+      console.error('Error renaming identity:', error);
+      alert('Failed to rename identity');
+    }
+  }
+
+  async function deleteIdentity(identity: Identity) {
+    try {
+      const response = await fetch(`/api/identity?id=${identity.id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete identity');
+      }
+      // Switch to first remaining identity
+      const remaining = identities.filter(i => i.id !== identity.id);
+      if (remaining.length > 0) {
+        setSelectedIdentity(remaining[0]);
+      }
+      await loadIdentities();
+    } catch (error: any) {
+      console.error('Error deleting identity:', error);
+      alert(error.message || 'Failed to delete identity');
+    }
+  }
+
+  async function duplicateIdentity(identity: Identity) {
+    try {
+      const name = prompt('Name for duplicate identity:', `${identity.name} (Copy)`);
+      if (!name?.trim()) return;
+
+      const response = await fetch('/api/identity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          duplicate_from: identity.id
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to duplicate identity');
+      const newIdentity = await response.json();
+      await loadIdentities();
+      setSelectedIdentity(newIdentity);
+    } catch (error) {
+      console.error('Error duplicating identity:', error);
+      alert('Failed to duplicate identity');
     }
   }
 
@@ -189,12 +249,6 @@ export default function IdentityPage() {
           </div>
           <div className="flex items-center gap-5">
             <button
-              onClick={() => { const name = prompt('Identity name:'); if (name) createIdentity(name); }}
-              className="text-[15px] text-[#007AFF] active:opacity-60 transition-opacity"
-            >
-              New
-            </button>
-            <button
               onClick={handleLogout}
               className="text-[15px] text-zinc-500 active:opacity-60 transition-opacity"
             >
@@ -217,46 +271,16 @@ export default function IdentityPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Identity selector — iOS grouped style */}
-            {identities.length > 1 && (
-              <div className="bg-zinc-900/80 rounded-xl overflow-hidden">
-                {identities.map((identity, i) => (
-                  <button
-                    key={identity.id}
-                    onClick={() => setSelectedIdentity(identity)}
-                    className={`w-full text-left px-4 min-h-[48px] flex items-center justify-between transition-colors active:bg-zinc-800 ${
-                      i < identities.length - 1 ? '' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 py-3 flex-1" style={i < identities.length - 1 ? { borderBottom: '0.5px solid rgba(255,255,255,0.08)' } : {}}>
-                      <div className="flex-1 min-w-0">
-                        <span className={`text-[17px] ${selectedIdentity?.id === identity.id ? 'text-white font-semibold' : 'text-zinc-300'}`}>
-                          {identity.name}
-                        </span>
-                        {identity.is_base && (
-                          <p className="text-[13px] text-zinc-500">Base Identity</p>
-                        )}
-                      </div>
-                      {selectedIdentity?.id === identity.id && (
-                        <svg className="w-5 h-5 text-[#007AFF] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Single identity display */}
-            {identities.length === 1 && selectedIdentity && (
-              <div className="bg-zinc-900/80 rounded-xl px-4 py-4">
-                <p className="text-[22px] font-semibold tracking-tight">{selectedIdentity.name}</p>
-                {selectedIdentity.is_base && (
-                  <p className="text-[13px] text-zinc-500 mt-1">Base Identity</p>
-                )}
-              </div>
-            )}
+            {/* Identity Switcher */}
+            <IdentitySwitcher
+              identities={identities}
+              selectedIdentity={selectedIdentity}
+              onSelectIdentity={setSelectedIdentity}
+              onCreateIdentity={(name) => createIdentity(name)}
+              onRenameIdentity={renameIdentity}
+              onDeleteIdentity={deleteIdentity}
+              onDuplicateIdentity={duplicateIdentity}
+            />
 
             {/* Categories */}
             {selectedIdentity && (
