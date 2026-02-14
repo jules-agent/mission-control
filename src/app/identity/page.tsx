@@ -48,6 +48,7 @@ export default function IdentityPage() {
   const [showAddInterest, setShowAddInterest] = useState(false);
   const [prefillInterest, setPrefillInterest] = useState<string | undefined>();
   const [prefillAlignment, setPrefillAlignment] = useState<number | undefined>();
+  const [viewingAsUser, setViewingAsUser] = useState<{ email: string; id: string } | null>(null);
   const selectedIdRef = useRef<string | null>(null);
 
   const supabase = createClient();
@@ -57,7 +58,49 @@ export default function IdentityPage() {
     selectedIdRef.current = selectedIdentity?.id || null;
   }, [selectedIdentity]);
 
-  useEffect(() => { checkAuth(); }, []);
+  useEffect(() => { 
+    checkAuth(); 
+    checkViewingAsMode();
+  }, []);
+
+  function checkViewingAsMode() {
+    const viewingAs = localStorage.getItem('viewingAsUser');
+    if (viewingAs) {
+      try {
+        setViewingAsUser(JSON.parse(viewingAs));
+      } catch {
+        localStorage.removeItem('viewingAsUser');
+      }
+    }
+  }
+
+  async function returnToAdmin() {
+    const adminToken = localStorage.getItem('adminReturnToken');
+    if (!adminToken) {
+      alert('No admin session found');
+      return;
+    }
+
+    try {
+      const { access_token, refresh_token } = JSON.parse(adminToken);
+      
+      // Restore admin session
+      await supabase.auth.setSession({
+        access_token,
+        refresh_token
+      });
+
+      // Clear viewing-as state
+      localStorage.removeItem('viewingAsUser');
+      localStorage.removeItem('adminReturnToken');
+
+      // Redirect to admin page
+      window.location.href = '/identity/admin';
+    } catch (error) {
+      console.error('Failed to return to admin:', error);
+      alert('Failed to restore admin session');
+    }
+  }
 
   async function checkAuth() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -411,6 +454,23 @@ export default function IdentityPage() {
         />
       )}
 
+      {/* Viewing As Banner */}
+      {viewingAsUser && (
+        <div className="pt-[env(safe-area-inset-top)] bg-amber-500 text-black">
+          <div className="max-w-md landscape:max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
+            <div className="text-[13px] font-medium">
+              👁️ Viewing as <span className="font-semibold">{viewingAsUser.email}</span>
+            </div>
+            <button
+              onClick={returnToAdmin}
+              className="text-[13px] font-semibold underline active:opacity-60 transition-opacity"
+            >
+              Return to Admin
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="pt-[env(safe-area-inset-top)] sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-zinc-800/60">
         <div className="max-w-md landscape:max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -421,6 +481,14 @@ export default function IdentityPage() {
           <div className="flex items-center gap-2">
             <ZoomControl inline />
             <BugReportButton appName="identity" inline />
+            {user?.email === 'ben@unpluggedperformance.com' && !viewingAsUser && (
+              <a
+                href="/identity/admin"
+                className="text-[15px] text-[#007AFF] active:opacity-60 transition-opacity"
+              >
+                Admin
+              </a>
+            )}
             <button
               onClick={handleLogout}
               className="text-[15px] text-zinc-500 active:opacity-60 transition-opacity"

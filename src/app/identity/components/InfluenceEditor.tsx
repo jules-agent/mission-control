@@ -48,10 +48,12 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
   const [recommendation, setRecommendation] = useState<{name: string; reason: string; alignment: number} | null>(null);
   const [loadingRec, setLoadingRec] = useState(false);
   const [dismissedRecs, setDismissedRecs] = useState<string[]>([]);
+  const [blockedRecs, setBlockedRecs] = useState<string[]>([]);
 
-  // Load dismissed recs from localStorage (with 7-day expiry)
+  // Load dismissed recs from localStorage (with 7-day expiry) + permanent blocks
   useEffect(() => {
     const key = `rec-dismissed-${categoryId}`;
+    const blockKey = `rec-blocked-${categoryId}`;
     try {
       const stored = JSON.parse(localStorage.getItem(key) || '[]') as { name: string; ts: number }[];
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -59,6 +61,10 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
       if (valid.length !== stored.length) localStorage.setItem(key, JSON.stringify(valid));
       setDismissedRecs(valid.map(d => d.name));
     } catch { setDismissedRecs([]); }
+    try {
+      const blocked = JSON.parse(localStorage.getItem(blockKey) || '[]') as string[];
+      setBlockedRecs(blocked);
+    } catch { setBlockedRecs([]); }
   }, [categoryId]);
 
   function dismissRec(name: string) {
@@ -68,6 +74,18 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
       stored.push({ name, ts: Date.now() });
       localStorage.setItem(key, JSON.stringify(stored));
       setDismissedRecs(prev => [...prev, name]);
+    } catch {}
+  }
+
+  function blockRecPermanently(name: string) {
+    const blockKey = `rec-blocked-${categoryId}`;
+    try {
+      const blocked = JSON.parse(localStorage.getItem(blockKey) || '[]') as string[];
+      if (!blocked.includes(name)) {
+        blocked.push(name);
+        localStorage.setItem(blockKey, JSON.stringify(blocked));
+      }
+      setBlockedRecs(prev => [...prev, name]);
     } catch {}
   }
 
@@ -129,7 +147,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
           categoryName,
           categoryType,
           existingInfluences: items.map(i => ({ name: i.name, alignment: i.alignment })),
-          recentlyDismissed: dismissedRecs,
+          recentlyDismissed: [...dismissedRecs, ...blockedRecs],
         }),
       });
       const data = await res.json();
@@ -364,6 +382,18 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
               className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-[15px] text-zinc-300 active:opacity-80 disabled:opacity-40"
             >
               {loadingRec ? '⏳' : '↻ Try Another'}
+            </button>
+            <button
+              onClick={() => {
+                blockRecPermanently(recommendation.name);
+                setRecommendation(null);
+                getRecommendation();
+              }}
+              disabled={loadingRec}
+              className="px-4 py-2 bg-zinc-800 border border-red-900/40 rounded-lg text-[15px] text-red-400 active:opacity-80 disabled:opacity-40"
+              title="Never recommend this again"
+            >
+              👎
             </button>
             <button
               onClick={() => {
