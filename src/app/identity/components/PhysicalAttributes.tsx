@@ -40,6 +40,7 @@ export function PhysicalAttributes({ identityId, physicalAttributes, onSave }: P
   const [data, setData] = useState<PhysicalAttributesData>(physicalAttributes || {});
   const [useMetric, setUseMetric] = useState(false);
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   useEffect(() => {
     setData(physicalAttributes || {});
@@ -71,8 +72,11 @@ export function PhysicalAttributes({ identityId, physicalAttributes, onSave }: P
 
     // Debounce save
     if (debounceTimer) clearTimeout(debounceTimer);
-    const timer = setTimeout(() => {
-      onSave(identityId, updated);
+    setSaveStatus('saving');
+    const timer = setTimeout(async () => {
+      await onSave(identityId, updated);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 1500);
     }, 500);
     setDebounceTimer(timer);
   }
@@ -136,6 +140,8 @@ export function PhysicalAttributes({ identityId, physicalAttributes, onSave }: P
         <h3 className="text-[17px] font-semibold text-white flex items-center gap-2">
           <span>📏</span>
           Physical Attributes
+          {saveStatus === 'saving' && <span className="text-[12px] text-zinc-500 font-normal ml-1">Saving...</span>}
+          {saveStatus === 'saved' && <span className="text-[12px] text-[#34C759] font-normal ml-1">✓ Saved</span>}
         </h3>
         <button
           onClick={() => setExpanded(false)}
