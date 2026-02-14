@@ -467,17 +467,24 @@ export default function IdentityPage() {
           </div>
         )}
       </div>
-      {/* Floating Add Interest Button */}
+      {/* Floating Action Buttons - stacked vertically */}
       {selectedIdentity && !showAddInterest && !showOnboarding && (
-        <button
-          onClick={() => setShowAddInterest(true)}
-          className="fixed bottom-8 right-6 w-14 h-14 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-full shadow-lg shadow-[#007AFF]/30 flex items-center justify-center transition-all z-40"
-          style={{ bottom: 'calc(32px + env(safe-area-inset-bottom))' }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+        <div className="fixed right-5 z-40 flex flex-col items-center gap-3" style={{ bottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+          <BugReportButton appName="identity" inline />
+          <button
+            onClick={() => setShowAddInterest(true)}
+            className="w-14 h-14 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-full shadow-lg shadow-[#007AFF]/30 flex items-center justify-center transition-all"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Bug report when no identity selected or in other states */}
+      {(!selectedIdentity || showAddInterest || showOnboarding) && (
+        <BugReportButton appName="identity" />
       )}
 
       {/* Add Interest Flow */}
@@ -491,8 +498,6 @@ export default function IdentityPage() {
           onClose={() => { setShowAddInterest(false); if (selectedIdentity) loadCategories(selectedIdentity.id); }}
         />
       )}
-
-      <BugReportButton appName="identity" />
     </div>
   );
 }

@@ -4,9 +4,10 @@ import { useState } from 'react';
 
 interface BugReportButtonProps {
   appName: string;
+  inline?: boolean;
 }
 
-export function BugReportButton({ appName }: BugReportButtonProps) {
+export function BugReportButton({ appName, inline }: BugReportButtonProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'bug' | 'feature'>('bug');
   const [description, setDescription] = useState('');
@@ -53,7 +54,7 @@ export function BugReportButton({ appName }: BugReportButtonProps) {
       {/* Floating Button */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 rounded-full flex items-center justify-center text-xl shadow-lg transition-all active:scale-95"
+        className={`${inline ? '' : 'fixed bottom-6 right-6 z-50'} w-12 h-12 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 rounded-full flex items-center justify-center text-xl shadow-lg transition-all active:scale-95`}
         title="Report bug or request feature"
       >
         🐛
