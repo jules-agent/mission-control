@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-02-14T16:00:07.842198+00:00",
-  "totalMessages": 50338,
+  "lastUpdated": "2026-02-14T16:30:08.781031+00:00",
+  "totalMessages": 50404,
   "totals": {
-    "inputTokens": 24797635,
-    "outputTokens": 4822241,
-    "cacheReadTokens": 1663022548,
-    "cacheWriteTokens": 150443219,
-    "cost": 1575.0
+    "inputTokens": 24797750,
+    "outputTokens": 4828506,
+    "cacheReadTokens": 1665253418,
+    "cacheWriteTokens": 150860830,
+    "cost": 1578.74
   },
   "hourlyData": [
     {
@@ -859,7 +859,7 @@
     },
     {
       "hour": "2026-02-14T16",
-      "cost": 0.61
+      "cost": 4.35
     }
   ]
 }
