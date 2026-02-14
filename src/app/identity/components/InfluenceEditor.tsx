@@ -44,7 +44,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
   const [showBelowThreshold, setShowBelowThreshold] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newAlignment, setNewAlignment] = useState('50');
+  const [newAlignment, setNewAlignment] = useState('75');
   const [newMoodTags, setNewMoodTags] = useState('');
   const [recommendation, setRecommendation] = useState<{name: string; reason: string; alignment: number} | null>(null);
   const [loadingRec, setLoadingRec] = useState(false);
@@ -125,7 +125,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     const newInfluence: Influence = {
       id: crypto.randomUUID(),
       name: titleCase(newName.trim()),
-      alignment: Math.max(0, Math.min(100, parseInt(newAlignment) || 50)),
+      alignment: Math.max(0, Math.min(100, parseInt(newAlignment) || 75)),
       position: items.length,
       mood_tags: tags,
     };
