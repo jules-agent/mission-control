@@ -547,6 +547,17 @@ export default function IdentityPage() {
             )}
 
             {selectedIdentity && (
+              <div className="mb-4 pl-1">
+                <LocationInput
+                  city={selectedIdentity.city}
+                  state={selectedIdentity.state}
+                  country={selectedIdentity.country}
+                  onSave={(city, state, country) => updateLocation(selectedIdentity.id, city, state, country)}
+                />
+              </div>
+            )}
+
+            {selectedIdentity && (
               <CategoryTree
                 categories={categories}
                 influences={influences}

@@ -1,11 +1,76 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
+
+function LocationAutocomplete({ value, onSelect }: { value: string; onSelect: (display: string) => void }) {
+  const [query, setQuery] = useState(value);
+  const [results, setResults] = useState<{ display: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const search = useCallback(async (q: string) => {
+    if (q.length < 2) { setResults([]); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&featuretype=city`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const data = await res.json();
+      const mapped = data
+        .filter((r: any) => r.address)
+        .map((r: any) => {
+          const addr = r.address;
+          const c = addr.city || addr.town || addr.village || addr.municipality || '';
+          const s = addr.state || addr.province || addr.region || '';
+          const co = addr.country || '';
+          return { display: [c, s, co].filter(Boolean).join(', ') };
+        })
+        .filter((r: { display: string }) => r.display.length > 2);
+      const seen = new Set<string>();
+      setResults(mapped.filter((r: { display: string }) => { if (seen.has(r.display)) return false; seen.add(r.display); return true; }));
+    } catch { setResults([]); }
+    setLoading(false);
+  }, []);
+
+  function handleInput(v: string) {
+    setQuery(v);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => search(v), 300);
+  }
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={e => handleInput(e.target.value)}
+        placeholder="Type a city..."
+        className="w-full py-3 px-4 bg-zinc-800 rounded-xl text-[17px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
+      />
+      {loading && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-zinc-600 border-t-[#007AFF] rounded-full animate-spin" />}
+      {results.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden shadow-xl z-50">
+          {results.map((r, i) => (
+            <button
+              key={i}
+              onClick={() => { onSelect(r.display); setQuery(r.display); setResults([]); }}
+              className="w-full text-left px-4 py-2.5 text-[15px] text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 border-b border-zinc-800 last:border-0"
+            >
+              📍 {r.display}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface OnboardingData {
   name: string;
   gender: string;
   ageRange: string;
+  location: string;
   music: string;
   values: string[];
   entertainment: string;
@@ -33,6 +98,7 @@ export function OnboardingModal({ onComplete, onCancel }: OnboardingModalProps) 
     name: '',
     gender: '',
     ageRange: '',
+    location: '',
     music: '',
     values: [],
     entertainment: '',
@@ -188,6 +254,14 @@ export function OnboardingModal({ onComplete, onCancel }: OnboardingModalProps) 
                   />
                 </div>
                 <p className="text-[12px] text-zinc-600 mt-1">Enter age in years or select birthday</p>
+              </div>
+
+              <div>
+                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-2">📍 Location</label>
+                <LocationAutocomplete
+                  value={data.location || ''}
+                  onSelect={(display) => setData(d => ({ ...d, location: display }))}
+                />
               </div>
             </div>
           )}
