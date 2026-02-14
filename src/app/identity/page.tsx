@@ -12,6 +12,7 @@ import { PhysicalAttributes } from './components/PhysicalAttributes';
 import { BugReportButton } from '../components/BugReportButton';
 import { ZoomControl } from '../components/ZoomControl';
 import { ShoppingEngine } from './components/ShoppingEngine';
+import { FoodEngine } from './components/FoodEngine';
 
 interface Identity {
   id: string;
@@ -57,6 +58,7 @@ export default function IdentityPage() {
   const [prefillAlignment, setPrefillAlignment] = useState<number | undefined>();
   const [viewingAsUser, setViewingAsUser] = useState<{ email: string; id: string } | null>(null);
   const [showShopping, setShowShopping] = useState(false);
+  const [showFoodEngine, setShowFoodEngine] = useState(false);
   const selectedIdRef = useRef<string | null>(null);
 
   const supabase = createClient();
@@ -534,13 +536,22 @@ export default function IdentityPage() {
           <div className="flex items-center gap-2">
             <ZoomControl inline />
             {selectedIdentity && (
-              <button
-                onClick={() => setShowShopping(true)}
-                className="text-[22px] active:opacity-60 transition-opacity"
-                title="Shopping"
-              >
-                🛒
-              </button>
+              <>
+                <button
+                  onClick={() => setShowShopping(true)}
+                  className="text-[22px] active:opacity-60 transition-opacity"
+                  title="Shopping"
+                >
+                  🛒
+                </button>
+                <button
+                  onClick={() => setShowFoodEngine(true)}
+                  className="text-[22px] active:opacity-60 transition-opacity"
+                  title="Food Finder"
+                >
+                  🍣
+                </button>
+              </>
             )}
             <BugReportButton appName="identity" inline />
             {user?.email === 'ben@unpluggedperformance.com' && !viewingAsUser && (
@@ -668,7 +679,18 @@ export default function IdentityPage() {
       {showShopping && selectedIdentity && (
         <ShoppingEngine
           identityId={selectedIdentity.id}
+          categories={categories}
+          influences={influences}
+          onAddInfluence={(categoryId, influence) => addInterestToCategory(categoryId, influence)}
           onClose={() => setShowShopping(false)}
+        />
+      )}
+
+      {/* Food Engine */}
+      {showFoodEngine && selectedIdentity && (
+        <FoodEngine
+          identityId={selectedIdentity.id}
+          onClose={() => setShowFoodEngine(false)}
         />
       )}
     </div>

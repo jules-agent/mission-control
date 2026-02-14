@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { ThumbsDownFlow } from './ThumbsDownFlow';
 
 interface ShoppingEngineProps {
   identityId: string;
+  categories?: { id: string; name: string; parent_id: string | null; subcategories?: any[] }[];
+  influences?: Record<string, any[]>;
+  onAddInfluence?: (categoryId: string, influence: { name: string; alignment: number; position: number }) => void;
   onClose: () => void;
 }
 
@@ -61,7 +65,7 @@ const BUDGET_PRESETS = [
   { label: '$500+', min: 500, max: 10000 },
 ];
 
-export function ShoppingEngine({ identityId, onClose }: ShoppingEngineProps) {
+export function ShoppingEngine({ identityId, categories: identityCategories, influences, onAddInfluence, onClose }: ShoppingEngineProps) {
   const [step, setStep] = useState<'budget' | 'category' | 'results'>('budget');
   const [budgetMin, setBudgetMin] = useState(25);
   const [budgetMax, setBudgetMax] = useState(100);
@@ -71,6 +75,29 @@ export function ShoppingEngine({ identityId, onClose }: ShoppingEngineProps) {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const [thumbsDownItem, setThumbsDownItem] = useState<string | null>(null);
+  const [blockedItems, setBlockedItems] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('shopping-blocked') || '[]'); } catch { return []; }
+  });
+
+  function blockItem(name: string) {
+    const updated = [...blockedItems, name];
+    setBlockedItems(updated);
+    localStorage.setItem('shopping-blocked', JSON.stringify(updated));
+    setProducts(prev => prev.filter(p => p.name !== name));
+    setThumbsDownItem(null);
+  }
+
+  function flattenCategories(cats: any[], depth = 0): { id: string; name: string; depth: number }[] {
+    const result: { id: string; name: string; depth: number }[] = [];
+    for (const cat of (cats || [])) {
+      result.push({ id: cat.id, name: cat.name, depth });
+      if (cat.subcategories) result.push(...flattenCategories(cat.subcategories, depth + 1));
+    }
+    return result;
+  }
+
+  const flatCats = flattenCategories(identityCategories || []);
 
   // Infinite scroll handler
   useEffect(() => {
@@ -106,6 +133,7 @@ export function ShoppingEngine({ identityId, onClose }: ShoppingEngineProps) {
           budgetMax,
           offset: newOffset,
           limit: 10,
+          blocked: blockedItems,
         }),
       });
 
@@ -293,7 +321,16 @@ export function ShoppingEngine({ identityId, onClose }: ShoppingEngineProps) {
                 </p>
 
                 <div className="flex items-center justify-between pt-2">
-                  <p className="text-[13px] text-zinc-500">{product.store}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[13px] text-zinc-500">{product.store}</p>
+                    <button
+                      onClick={() => setThumbsDownItem(product.name)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-red-900/30 text-red-400 hover:bg-red-900/20 active:opacity-60 transition-all text-[14px]"
+                      title="Never show again"
+                    >
+                      👎
+                    </button>
+                  </div>
                   <a
                     href={product.url}
                     target="_blank"
@@ -348,6 +385,29 @@ export function ShoppingEngine({ identityId, onClose }: ShoppingEngineProps) {
           </div>
         )}
       </div>
+
+      {/* Thumbs Down Flow */}
+      {thumbsDownItem && (
+        <ThumbsDownFlow
+          itemName={thumbsDownItem}
+          engineType="shopping"
+          categories={flatCats}
+          onDismiss={() => {
+            blockItem(thumbsDownItem);
+          }}
+          onAddToIdentity={(reason, categoryId) => {
+            blockItem(thumbsDownItem);
+            if (categoryId && onAddInfluence) {
+              const existingCount = influences?.[categoryId]?.length || 0;
+              onAddInfluence(categoryId, {
+                name: reason,
+                alignment: 0,
+                position: existingCount,
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
