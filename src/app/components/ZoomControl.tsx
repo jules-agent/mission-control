@@ -6,7 +6,7 @@ const ZOOM_KEY = 'ui-zoom-level';
 const ZOOM_STEPS = [80, 85, 90, 95, 100, 105, 110];
 const DEFAULT_ZOOM = 90; // Slightly smaller default for mobile
 
-export function ZoomControl() {
+export function ZoomControl({ inline }: { inline?: boolean } = {}) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
 
   useEffect(() => {
@@ -35,34 +35,59 @@ export function ZoomControl() {
     localStorage.setItem(ZOOM_KEY, '100');
   }
 
-  return (
-    <>
-      {/* Always-visible compact zoom bar - bottom left */}
-      <div
-        className="fixed left-3 z-[55] flex items-center gap-0.5 bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/60 rounded-full px-1 py-1 shadow-xl"
-        style={{ bottom: 'calc(24px + env(safe-area-inset-bottom))' }}
-      >
+  if (inline) {
+    return (
+      <div className="flex items-center gap-0.5 bg-zinc-800/80 border border-zinc-700/60 rounded-full px-0.5 py-0.5">
         <button
           onClick={() => changeZoom(-1)}
           disabled={zoom <= ZOOM_STEPS[0]}
-          className="w-8 h-8 flex items-center justify-center rounded-full text-[16px] font-medium text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 disabled:opacity-25 transition-all"
+          className="w-7 h-7 flex items-center justify-center rounded-full text-[14px] font-medium text-zinc-400 hover:bg-zinc-700 active:bg-zinc-600 disabled:opacity-25 transition-all"
         >
           −
         </button>
         <button
           onClick={resetZoom}
-          className="min-w-[36px] h-8 flex items-center justify-center text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition-all"
+          className="min-w-[30px] h-7 flex items-center justify-center text-[10px] font-medium text-zinc-500 hover:text-zinc-300 transition-all"
         >
           {zoom}%
         </button>
         <button
           onClick={() => changeZoom(1)}
           disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
-          className="w-8 h-8 flex items-center justify-center rounded-full text-[16px] font-medium text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 disabled:opacity-25 transition-all"
+          className="w-7 h-7 flex items-center justify-center rounded-full text-[14px] font-medium text-zinc-400 hover:bg-zinc-700 active:bg-zinc-600 disabled:opacity-25 transition-all"
         >
           +
         </button>
       </div>
-    </>
+    );
+  }
+
+  return (
+    <div
+      id="global-zoom-control"
+      className="fixed left-3 z-[55] flex items-center gap-0.5 bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/60 rounded-full px-1 py-1 shadow-xl"
+      style={{ bottom: 'calc(24px + env(safe-area-inset-bottom))' }}
+    >
+      <button
+        onClick={() => changeZoom(-1)}
+        disabled={zoom <= ZOOM_STEPS[0]}
+        className="w-8 h-8 flex items-center justify-center rounded-full text-[16px] font-medium text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 disabled:opacity-25 transition-all"
+      >
+        −
+      </button>
+      <button
+        onClick={resetZoom}
+        className="min-w-[36px] h-8 flex items-center justify-center text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition-all"
+      >
+        {zoom}%
+      </button>
+      <button
+        onClick={() => changeZoom(1)}
+        disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
+        className="w-8 h-8 flex items-center justify-center rounded-full text-[16px] font-medium text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 disabled:opacity-25 transition-all"
+      >
+        +
+      </button>
+    </div>
   );
 }

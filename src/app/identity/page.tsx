@@ -8,6 +8,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { IdentitySummary } from './components/IdentitySummary';
 import { AddInterestFlow } from './components/AddInterestFlow';
 import { BugReportButton } from '../components/BugReportButton';
+import { ZoomControl } from '../components/ZoomControl';
 
 interface Identity {
   id: string;
@@ -400,6 +401,8 @@ export default function IdentityPage() {
       className="min-h-screen bg-black text-white"
       style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
     >
+      {/* Hide global floating zoom — we have inline zoom in header */}
+      <style>{`#global-zoom-control { display: none !important; }`}</style>
       {/* Onboarding Modal */}
       {showOnboarding && (
         <OnboardingModal
@@ -415,7 +418,8 @@ export default function IdentityPage() {
             <h1 className="text-[22px] font-semibold tracking-tight">Identity</h1>
             <p className="text-[13px] text-zinc-500 mt-0.5">{user?.email}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ZoomControl inline />
             <BugReportButton appName="identity" inline />
             <button
               onClick={handleLogout}
