@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { ThumbsDownFlow } from './ThumbsDownFlow';
 
 interface FoodEngineProps {
@@ -167,9 +168,14 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
 
     setLoading(true);
     try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/identity/food', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
         body: JSON.stringify({
           identityId,
           category: selectedCategory,
@@ -323,7 +329,11 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
                       setBudgetMin(preset.min);
                       setBudgetMax(preset.max);
                     }}
-                    className="px-4 py-3 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl text-[15px] font-medium transition-all"
+                    className={`px-4 py-3 rounded-xl text-[15px] font-medium transition-all border ${
+                      budgetMin === preset.min && budgetMax === preset.max
+                        ? 'bg-[#007AFF] border-[#007AFF] text-white'
+                        : 'bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border-zinc-800'
+                    }`}
                   >
                     {preset.label}
                   </button>
