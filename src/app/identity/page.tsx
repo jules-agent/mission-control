@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { CategoryTree } from './components/CategoryTree';
 import { IdentitySwitcher } from './components/IdentitySwitcher';
 import { OnboardingModal } from './components/OnboardingModal';
+import { BugReportButton } from '../components/BugReportButton';
 
 interface Identity {
   id: string;
@@ -419,6 +420,7 @@ export default function IdentityPage() {
           </div>
         )}
       </div>
+      <BugReportButton appName="identity" />
     </div>
   );
 }

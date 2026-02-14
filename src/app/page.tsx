@@ -22,6 +22,13 @@ export default async function HomePage() {
         {/* SpaceX-style Mission Control header */}
         <SpaceXHeader />
         
+        {/* Quick Links */}
+        <div className="flex gap-2">
+          <a href="/admin/reports" className="px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-md text-zinc-300 transition">
+            📋 App Reports
+          </a>
+        </div>
+        
         {/* Identity Management - NEW */}
         <IdentityPanel />
         
