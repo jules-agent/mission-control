@@ -7,6 +7,7 @@ import { IdentitySwitcher } from './components/IdentitySwitcher';
 import { OnboardingModal } from './components/OnboardingModal';
 import { IdentitySummary } from './components/IdentitySummary';
 import { AddInterestFlow } from './components/AddInterestFlow';
+import { LocationInput } from './components/LocationInput';
 import { BugReportButton } from '../components/BugReportButton';
 import { ZoomControl } from '../components/ZoomControl';
 
@@ -16,6 +17,9 @@ interface Identity {
   is_base: boolean;
   parent_id: string | null;
   created_at: string;
+  city?: string;
+  state?: string;
+  country?: string;
 }
 
 interface Category {
@@ -421,6 +425,17 @@ export default function IdentityPage() {
     } catch (error) {
       console.error('Error duplicating identity:', error);
       alert('Failed to duplicate identity');
+    }
+  }
+
+  async function updateLocation(identityId: string, city: string, state: string, country: string) {
+    const { error } = await supabase
+      .from('identities')
+      .update({ city, state, country })
+      .eq('id', identityId);
+    if (!error && selectedIdentity) {
+      setIdentities(prev => prev.map(i => i.id === identityId ? { ...i, city, state, country } : i));
+      setSelectedIdentity({ ...selectedIdentity, city, state, country });
     }
   }
 
