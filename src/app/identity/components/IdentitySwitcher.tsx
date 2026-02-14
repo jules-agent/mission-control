@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 interface Identity {
   id: string;
@@ -33,6 +34,8 @@ export function IdentitySwitcher({
 }: IdentitySwitcherProps) {
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [influenceCounts, setInfluenceCounts] = useState<Record<string, number>>({});
+  const supabase = createClient();
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -49,11 +52,28 @@ export function IdentitySwitcher({
     identity.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Count total influences across all categories for an identity
+  // Fetch influence counts when modal opens
+  useEffect(() => {
+    if (!showModal || identities.length === 0) return;
+    async function fetchCounts() {
+      const counts: Record<string, number> = {};
+      for (const identity of identities) {
+        const { data: cats } = await supabase.from('categories').select('id').eq('identity_id', identity.id);
+        if (cats && cats.length > 0) {
+          const catIds = cats.map(c => c.id);
+          const { count } = await supabase.from('influences').select('*', { count: 'exact', head: true }).in('category_id', catIds);
+          counts[identity.id] = count || 0;
+        } else {
+          counts[identity.id] = 0;
+        }
+      }
+      setInfluenceCounts(counts);
+    }
+    fetchCounts();
+  }, [showModal, identities]);
+
   const getInfluenceCount = (identity: Identity): number => {
-    // This would need actual influence data - for now return placeholder
-    // You could pass influence counts as props or fetch here
-    return 0;
+    return influenceCounts[identity.id] ?? 0;
   };
 
   const handleSelectFromModal = (identity: Identity) => {
