@@ -107,15 +107,33 @@ export default function IdentityPage() {
     try {
       const { data, error } = await supabase.from('identities').select('*').order('created_at', { ascending: true });
       if (error) throw error;
-      setIdentities(data || []);
-      // Only auto-select if nothing is selected yet
-      if (!selectedIdRef.current) {
-        const baseIdentity = data?.find(i => i.is_base) || data?.[0];
-        if (baseIdentity) setSelectedIdentity(baseIdentity);
+      
+      // If new user has no identities, create Primary + clone templates
+      if (!data || data.length === 0) {
+        if (!user) return;
+        // Create Primary identity
+        const { data: primary } = await supabase.from('identities')
+          .insert({ user_id: user.id, name: user.user_metadata?.full_name || 'My Identity', is_base: true })
+          .select().single();
+        
+        // Clone template identities (Obama, Musk, etc.)
+        await supabase.rpc('clone_templates_for_user', { target_user_id: user.id });
+        
+        // Reload after cloning
+        const { data: refreshed } = await supabase.from('identities').select('*').order('created_at', { ascending: true });
+        setIdentities(refreshed || []);
+        if (primary) setSelectedIdentity(primary);
+        else if (refreshed?.[0]) setSelectedIdentity(refreshed[0]);
       } else {
-        // Update the selected identity object in case name changed
-        const current = data?.find(i => i.id === selectedIdRef.current);
-        if (current) setSelectedIdentity(current);
+        setIdentities(data);
+        // Only auto-select if nothing is selected yet
+        if (!selectedIdRef.current) {
+          const baseIdentity = data.find(i => i.is_base) || data[0];
+          if (baseIdentity) setSelectedIdentity(baseIdentity);
+        } else {
+          const current = data.find(i => i.id === selectedIdRef.current);
+          if (current) setSelectedIdentity(current);
+        }
       }
     } catch (error) {
       console.error('Error loading identities:', error);
