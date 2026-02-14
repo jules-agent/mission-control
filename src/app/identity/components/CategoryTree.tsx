@@ -29,6 +29,7 @@ interface CategoryTreeProps {
   onAddInfluence: (categoryId: string, name: string) => void;
   onUpdateInfluences: (categoryId: string, influences: Influence[]) => void;
   onDeleteCategory: (categoryId: string) => void;
+  onSendToAddFlow?: (interest: string, alignment: number) => void;
 }
 
 function getAlignmentDotColor(alignment: number): string {
@@ -63,7 +64,7 @@ function getAllInfluencesForCategory(category: Category, influences: Record<stri
 }
 
 export function CategoryTree({
-  categories, influences, onAddCategory, onAddInfluence, onUpdateInfluences, onDeleteCategory
+  categories, influences, onAddCategory, onAddInfluence, onUpdateInfluences, onDeleteCategory, onSendToAddFlow
 }: CategoryTreeProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
@@ -166,6 +167,7 @@ export function CategoryTree({
                 categoryType={category.type}
                 categoryId={category.id}
                 categoryName={category.name}
+                onSendToAddFlow={onSendToAddFlow}
               />
             ) : (
               <InfluenceEditor
@@ -189,6 +191,7 @@ export function CategoryTree({
                 categoryName={category.name}
                 allInfluences={influences}
                 isAggregated={true}
+                onSendToAddFlow={onSendToAddFlow}
               />
             )}
 

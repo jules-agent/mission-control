@@ -19,6 +19,7 @@ interface InfluenceEditorProps {
   categoryName: string;
   allInfluences?: Record<string, Influence[]>;
   isAggregated?: boolean;
+  onSendToAddFlow?: (interest: string, alignment: number) => void;
 }
 
 function getAlignmentColor(alignment: number): string {
@@ -35,7 +36,7 @@ function getAlignmentDot(alignment: number): string {
   return '🔴';
 }
 
-export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId, categoryName, allInfluences, isAggregated }: InfluenceEditorProps) {
+export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId, categoryName, allInfluences, isAggregated, onSendToAddFlow }: InfluenceEditorProps) {
   const [items, setItems] = useState(influences);
   const [editingAlignment, setEditingAlignment] = useState<string | null>(null);
   const [alignmentInput, setAlignmentInput] = useState('');
@@ -144,17 +145,24 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
 
   function acceptRecommendation() {
     if (!recommendation) return;
-    const newInfluence: Influence = {
-      id: crypto.randomUUID(),
-      name: recommendation.name,
-      alignment: recommendation.alignment,
-      position: items.length,
-      mood_tags: [],
-    };
-    const updated = [...items, newInfluence];
-    setItems(updated);
-    onUpdate(updated);
-    setRecommendation(null);
+    if (onSendToAddFlow) {
+      // Send through the full Add Interest Flow (categorize → confirm → alignment → rank → save)
+      onSendToAddFlow(recommendation.name, recommendation.alignment);
+      setRecommendation(null);
+    } else {
+      // Fallback: add directly to current category
+      const newInfluence: Influence = {
+        id: crypto.randomUUID(),
+        name: recommendation.name,
+        alignment: recommendation.alignment,
+        position: items.length,
+        mood_tags: [],
+      };
+      const updated = [...items, newInfluence];
+      setItems(updated);
+      onUpdate(updated);
+      setRecommendation(null);
+    }
   }
 
   return (

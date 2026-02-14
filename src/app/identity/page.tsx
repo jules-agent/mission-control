@@ -45,6 +45,8 @@ export default function IdentityPage() {
   const [user, setUser] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAddInterest, setShowAddInterest] = useState(false);
+  const [prefillInterest, setPrefillInterest] = useState<string | undefined>();
+  const [prefillAlignment, setPrefillAlignment] = useState<number | undefined>();
   const selectedIdRef = useRef<string | null>(null);
 
   const supabase = createClient();
@@ -465,6 +467,11 @@ export default function IdentityPage() {
                 onAddInfluence={addInfluence}
                 onUpdateInfluences={updateInfluences}
                 onDeleteCategory={deleteCategory}
+                onSendToAddFlow={(interest, alignment) => {
+                  setPrefillInterest(interest);
+                  setPrefillAlignment(alignment);
+                  setShowAddInterest(true);
+                }}
               />
             )}
           </div>
@@ -491,7 +498,14 @@ export default function IdentityPage() {
           influences={influences}
           onSave={addInterestToCategory}
           onCreateCategory={createCategoryAndReturn}
-          onClose={() => { setShowAddInterest(false); if (selectedIdentity) loadCategories(selectedIdentity.id); }}
+          onClose={() => {
+            setShowAddInterest(false);
+            setPrefillInterest(undefined);
+            setPrefillAlignment(undefined);
+            if (selectedIdentity) loadCategories(selectedIdentity.id);
+          }}
+          initialInterest={prefillInterest}
+          initialAlignment={prefillAlignment}
         />
       )}
     </div>

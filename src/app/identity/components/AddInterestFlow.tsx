@@ -28,20 +28,22 @@ interface AddInterestFlowProps {
   onSave: (categoryId: string, influence: { name: string; alignment: number; position: number }) => Promise<void>;
   onCreateCategory: (name: string, type: string, parentId: string | null) => Promise<string | null>;
   onClose: () => void;
+  initialInterest?: string;
+  initialAlignment?: number;
 }
 
 type Step = 'input' | 'categorizing' | 'confirm-category' | 'pick-category' | 'alignment' | 'position' | 'saving' | 'done';
 
-export function AddInterestFlow({ identityId, categories, influences, onSave, onCreateCategory, onClose }: AddInterestFlowProps) {
-  const [step, setStep] = useState<Step>('input');
-  const [interest, setInterest] = useState('');
+export function AddInterestFlow({ identityId, categories, influences, onSave, onCreateCategory, onClose, initialInterest, initialAlignment }: AddInterestFlowProps) {
+  const [step, setStep] = useState<Step>(initialInterest ? 'categorizing' : 'input');
+  const [interest, setInterest] = useState(initialInterest || '');
   const [suggestedCategory, setSuggestedCategory] = useState('');
   const [suggestedCategoryId, setSuggestedCategoryId] = useState<string | null>(null);
   const [isNewCategory, setIsNewCategory] = useState(false);
   const [suggestedType, setSuggestedType] = useState('custom');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
-  const [alignment, setAlignment] = useState(85);
+  const [alignment, setAlignment] = useState(initialAlignment || 85);
   const [position, setPosition] = useState(0);
   const [categoryInfluences, setCategoryInfluences] = useState<Influence[]>([]);
   const [isListening, setIsListening] = useState(false);
@@ -50,7 +52,13 @@ export function AddInterestFlow({ identityId, categories, influences, onSave, on
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    if (initialInterest) {
+      // Auto-categorize the pre-populated interest
+      handleSubmitInterestAuto(initialInterest);
+    } else {
+      inputRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Flatten categories for picker
@@ -100,6 +108,27 @@ export function AddInterestFlow({ identityId, categories, influences, onSave, on
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
+  }
+
+  async function handleSubmitInterestAuto(text: string) {
+    setStep('categorizing');
+    setError('');
+    try {
+      const res = await fetch('/api/identity/categorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interest: text.trim(), identityId }),
+      });
+      const data = await res.json();
+      setSuggestedCategory(data.category);
+      setSuggestedCategoryId(data.categoryId);
+      setIsNewCategory(data.isNew);
+      setSuggestedType(data.suggestedType || 'custom');
+      setStep('confirm-category');
+    } catch {
+      setError('Failed to categorize. Try again.');
+      setStep('input');
+    }
   }
 
   async function handleSubmitInterest() {
