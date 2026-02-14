@@ -54,7 +54,7 @@ export function BugReportButton({ appName, inline }: BugReportButtonProps) {
       {/* Floating Button */}
       <button
         onClick={() => setOpen(true)}
-        className={`${inline ? '' : 'fixed bottom-6 right-6 z-50'} w-12 h-12 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 rounded-full flex items-center justify-center text-xl shadow-lg transition-all active:scale-95`}
+        className={`${inline ? 'w-8 h-8 text-sm' : 'fixed bottom-6 right-6 z-50 w-12 h-12 text-xl shadow-lg'} bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 rounded-full flex items-center justify-center transition-all active:scale-95`}
         title="Report bug or request feature"
       >
         🐛

@@ -413,12 +413,15 @@ export default function IdentityPage() {
             <h1 className="text-[22px] font-semibold tracking-tight">Identity</h1>
             <p className="text-[13px] text-zinc-500 mt-0.5">{user?.email}</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-[15px] text-zinc-500 active:opacity-60 transition-opacity"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-3">
+            <BugReportButton appName="identity" inline />
+            <button
+              onClick={handleLogout}
+              className="text-[15px] text-zinc-500 active:opacity-60 transition-opacity"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -467,24 +470,17 @@ export default function IdentityPage() {
           </div>
         )}
       </div>
-      {/* Floating Action Buttons - stacked vertically */}
+      {/* Floating Add Interest Button */}
       {selectedIdentity && !showAddInterest && !showOnboarding && (
-        <div className="fixed right-5 z-40 flex flex-col items-center gap-3" style={{ bottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
-          <BugReportButton appName="identity" inline />
-          <button
-            onClick={() => setShowAddInterest(true)}
-            className="w-14 h-14 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-full shadow-lg shadow-[#007AFF]/30 flex items-center justify-center transition-all"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Bug report when no identity selected or in other states */}
-      {(!selectedIdentity || showAddInterest || showOnboarding) && (
-        <BugReportButton appName="identity" />
+        <button
+          onClick={() => setShowAddInterest(true)}
+          className="fixed right-5 w-14 h-14 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-full shadow-lg shadow-[#007AFF]/30 flex items-center justify-center transition-all z-40"
+          style={{ bottom: 'calc(24px + env(safe-area-inset-bottom))' }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
       )}
 
       {/* Add Interest Flow */}
