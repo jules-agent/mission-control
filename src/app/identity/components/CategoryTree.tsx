@@ -131,7 +131,7 @@ export function CategoryTree({
         >
           <div
             className="flex items-center gap-3 py-3 flex-1 pr-4"
-            style={!isLast ? { borderBottom: '0.5px solid rgba(255,255,255,0.08)', marginLeft: depth > 0 ? 0 : 44 } : {}}
+            style={!isLast ? { borderBottom: '0.5px solid rgba(255,255,255,0.08)' } : {}}
           >
             <span className="text-[20px] w-8 text-center flex-shrink-0">{getCategoryIcon(category.type)}</span>
             <div className="flex-1 min-w-0 text-left">
