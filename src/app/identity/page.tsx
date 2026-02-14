@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CategoryTree } from './components/CategoryTree';
 import { IdentitySwitcher } from './components/IdentitySwitcher';
+import { OnboardingModal } from './components/OnboardingModal';
 
 interface Identity {
   id: string;
@@ -39,8 +40,15 @@ export default function IdentityPage() {
   const [influences, setInfluences] = useState<Record<string, Influence[]>>({});
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const selectedIdRef = useRef<string | null>(null);
 
   const supabase = createClient();
+
+  // Track selected identity ID in ref so loadIdentities doesn't reset it
+  useEffect(() => {
+    selectedIdRef.current = selectedIdentity?.id || null;
+  }, [selectedIdentity]);
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -48,27 +56,11 @@ export default function IdentityPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { window.location.href = '/identity/login'; return; }
     setUser(user);
-    loadIdentities();
   }
 
   useEffect(() => { if (user) loadIdentities(); }, [user]);
-  useEffect(() => { if (selectedIdentity) loadCategories(selectedIdentity.id); }, [selectedIdentity]);
 
-  async function loadIdentities() {
-    try {
-      const { data, error } = await supabase.from('identities').select('*').order('created_at', { ascending: true });
-      if (error) throw error;
-      setIdentities(data || []);
-      const baseIdentity = data?.find(i => i.is_base);
-      if (baseIdentity) setSelectedIdentity(baseIdentity);
-    } catch (error) {
-      console.error('Error loading identities:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadCategories(identityId: string) {
+  const loadCategories = useCallback(async (identityId: string) => {
     try {
       const { data, error } = await supabase.from('categories').select('*').eq('identity_id', identityId).order('level', { ascending: true });
       if (error) throw error;
@@ -93,9 +85,48 @@ export default function IdentityPage() {
           influencesByCategory[inf.category_id].push(inf);
         });
         setInfluences(influencesByCategory);
+      } else {
+        setInfluences({});
       }
     } catch (error) {
       console.error('Error loading categories:', error);
+    }
+  }, [supabase]);
+
+  // Load categories whenever selected identity changes
+  useEffect(() => {
+    if (selectedIdentity) {
+      loadCategories(selectedIdentity.id);
+    } else {
+      setCategories([]);
+      setInfluences({});
+    }
+  }, [selectedIdentity?.id]);
+
+  async function loadIdentities() {
+    try {
+      const { data, error } = await supabase.from('identities').select('*').order('created_at', { ascending: true });
+      if (error) throw error;
+      setIdentities(data || []);
+      // Only auto-select if nothing is selected yet
+      if (!selectedIdRef.current) {
+        const baseIdentity = data?.find(i => i.is_base) || data?.[0];
+        if (baseIdentity) setSelectedIdentity(baseIdentity);
+      } else {
+        // Update the selected identity object in case name changed
+        const current = data?.find(i => i.id === selectedIdRef.current);
+        if (current) setSelectedIdentity(current);
+      }
+    } catch (error) {
+      console.error('Error loading identities:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleSelectIdentity(identity: Identity) {
+    if (identity.id !== selectedIdentity?.id) {
+      setSelectedIdentity(identity);
     }
   }
 
@@ -162,6 +193,81 @@ export default function IdentityPage() {
     }
   }
 
+  async function handleOnboardingComplete(onboardingData: {
+    name: string;
+    gender: string;
+    ageRange: string;
+    music: string;
+    values: string[];
+    entertainment: string;
+    food: string[];
+    intellectualInterests: string;
+  }) {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) throw new Error('Not authenticated');
+
+    // Create the identity
+    const { data: newIdentity, error: identityError } = await supabase
+      .from('identities')
+      .insert({ user_id: currentUser.id, name: onboardingData.name, is_base: false })
+      .select()
+      .single();
+    if (identityError) throw identityError;
+
+    const identityId = newIdentity.id;
+
+    // Helper to create a category with influences
+    async function seedCategory(name: string, type: string, icon: string, items: string[], alignment: number) {
+      if (items.length === 0) return;
+      const { data: cat, error: catError } = await supabase
+        .from('categories')
+        .insert({ identity_id: identityId, parent_id: null, name, type, level: 1 })
+        .select()
+        .single();
+      if (catError || !cat) return;
+
+      const influences = items.map((item, i) => ({
+        category_id: cat.id,
+        name: item.trim(),
+        alignment,
+        position: i,
+        mood_tags: [],
+      }));
+      await supabase.from('influences').insert(influences);
+    }
+
+    // Seed Demographics category for gender/age
+    if (onboardingData.gender || onboardingData.ageRange) {
+      const demoItems: string[] = [];
+      if (onboardingData.gender) demoItems.push(onboardingData.gender);
+      if (onboardingData.ageRange) demoItems.push(`Age: ${onboardingData.ageRange}`);
+      await seedCategory('Demographics', 'custom', '👤', demoItems, 95);
+    }
+
+    // Seed Music
+    const musicItems = onboardingData.music.split(',').map(s => s.trim()).filter(Boolean);
+    await seedCategory('Music', 'music', '🎵', musicItems, 92);
+
+    // Seed Values
+    await seedCategory('Values', 'philosophy', '💡', onboardingData.values, 87);
+
+    // Seed Entertainment
+    const entertainmentItems = onboardingData.entertainment.split(',').map(s => s.trim()).filter(Boolean);
+    await seedCategory('Entertainment', 'custom', '🎬', entertainmentItems, 90);
+
+    // Seed Food Preferences
+    await seedCategory('Food Preferences', 'food', '🍽️', onboardingData.food, 85);
+
+    // Seed Intellectual Interests
+    const intellectualItems = onboardingData.intellectualInterests.split(',').map(s => s.trim()).filter(Boolean);
+    await seedCategory('Intellectual Interests', 'philosophy', '🧠', intellectualItems, 88);
+
+    // Switch to new identity
+    setSelectedIdentity(newIdentity);
+    await loadIdentities();
+    setShowOnboarding(false);
+  }
+
   async function renameIdentity(identity: Identity, newName: string) {
     try {
       const response = await fetch('/api/identity', {
@@ -184,7 +290,6 @@ export default function IdentityPage() {
         const data = await response.json();
         throw new Error(data.error || 'Failed to delete identity');
       }
-      // Switch to first remaining identity
       const remaining = identities.filter(i => i.id !== identity.id);
       if (remaining.length > 0) {
         setSelectedIdentity(remaining[0]);
@@ -200,16 +305,11 @@ export default function IdentityPage() {
     try {
       const name = prompt('Name for duplicate identity:', `${identity.name} (Copy)`);
       if (!name?.trim()) return;
-
       const response = await fetch('/api/identity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          duplicate_from: identity.id
-        })
+        body: JSON.stringify({ name: name.trim(), duplicate_from: identity.id })
       });
-      
       if (!response.ok) throw new Error('Failed to duplicate identity');
       const newIdentity = await response.json();
       await loadIdentities();
@@ -240,21 +340,27 @@ export default function IdentityPage() {
       className="min-h-screen bg-black text-white"
       style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
     >
-      {/* Header — clean, spacious */}
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <OnboardingModal
+          onComplete={handleOnboardingComplete}
+          onCancel={() => setShowOnboarding(false)}
+        />
+      )}
+
+      {/* Header */}
       <header className="pt-[env(safe-area-inset-top)] sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-zinc-800/60">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-semibold tracking-tight">Identity</h1>
             <p className="text-[13px] text-zinc-500 mt-0.5">{user?.email}</p>
           </div>
-          <div className="flex items-center gap-5">
-            <button
-              onClick={handleLogout}
-              className="text-[15px] text-zinc-500 active:opacity-60 transition-opacity"
-            >
-              Sign Out
-            </button>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="text-[15px] text-zinc-500 active:opacity-60 transition-opacity"
+          >
+            Sign Out
+          </button>
         </div>
       </header>
 
@@ -263,26 +369,25 @@ export default function IdentityPage() {
           <div className="text-center py-20">
             <p className="text-zinc-500 text-[17px] mb-6">No identities yet</p>
             <button
-              onClick={() => createIdentity('Base Identity', true)}
+              onClick={() => createIdentity('Primary Identity', true)}
               className="px-6 py-3 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-xl text-[17px] font-semibold transition-all"
             >
-              Create Base Identity
+              Create Primary Identity
             </button>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Identity Switcher */}
             <IdentitySwitcher
               identities={identities}
               selectedIdentity={selectedIdentity}
-              onSelectIdentity={setSelectedIdentity}
+              onSelectIdentity={handleSelectIdentity}
               onCreateIdentity={(name) => createIdentity(name)}
               onRenameIdentity={renameIdentity}
               onDeleteIdentity={deleteIdentity}
               onDuplicateIdentity={duplicateIdentity}
+              onStartOnboarding={() => setShowOnboarding(true)}
             />
 
-            {/* Categories */}
             {selectedIdentity && (
               <CategoryTree
                 categories={categories}
