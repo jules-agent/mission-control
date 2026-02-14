@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { categoryName, categoryType, existingInfluences } = await request.json();
+    const { categoryName, categoryType, existingInfluences, recentlyDismissed } = await request.json();
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -20,6 +20,7 @@ Based on their existing taste and preferences, suggest ONE new influence they wo
 - What gaps or complementary additions would enrich their profile
 - Something that shows deep knowledge of the domain
 
+${recentlyDismissed?.length ? `\nDO NOT suggest any of these (already dismissed): ${recentlyDismissed.join(', ')}\n` : ''}
 Respond in JSON format only:
 {
   "name": "Name of the influence",

@@ -46,6 +46,29 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
   const [newMoodTags, setNewMoodTags] = useState('');
   const [recommendation, setRecommendation] = useState<{name: string; reason: string; alignment: number} | null>(null);
   const [loadingRec, setLoadingRec] = useState(false);
+  const [dismissedRecs, setDismissedRecs] = useState<string[]>([]);
+
+  // Load dismissed recs from localStorage (with 7-day expiry)
+  useEffect(() => {
+    const key = `rec-dismissed-${categoryId}`;
+    try {
+      const stored = JSON.parse(localStorage.getItem(key) || '[]') as { name: string; ts: number }[];
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const valid = stored.filter(d => d.ts > weekAgo);
+      if (valid.length !== stored.length) localStorage.setItem(key, JSON.stringify(valid));
+      setDismissedRecs(valid.map(d => d.name));
+    } catch { setDismissedRecs([]); }
+  }, [categoryId]);
+
+  function dismissRec(name: string) {
+    const key = `rec-dismissed-${categoryId}`;
+    try {
+      const stored = JSON.parse(localStorage.getItem(key) || '[]') as { name: string; ts: number }[];
+      stored.push({ name, ts: Date.now() });
+      localStorage.setItem(key, JSON.stringify(stored));
+      setDismissedRecs(prev => [...prev, name]);
+    } catch {}
+  }
 
   useEffect(() => { setItems(influences); }, [influences]);
 
@@ -105,6 +128,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
           categoryName,
           categoryType,
           existingInfluences: items.map(i => ({ name: i.name, alignment: i.alignment })),
+          recentlyDismissed: dismissedRecs,
         }),
       });
       const data = await res.json();
@@ -320,13 +344,27 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
               onClick={acceptRecommendation}
               className="px-4 py-2 bg-[#34C759] rounded-lg text-[15px] font-medium text-white active:opacity-80"
             >
-              Accept
+              ✓ Add
             </button>
             <button
-              onClick={() => setRecommendation(null)}
-              className="px-4 py-2 text-[15px] text-zinc-400 active:opacity-60"
+              onClick={() => {
+                dismissRec(recommendation.name);
+                setRecommendation(null);
+                getRecommendation();
+              }}
+              disabled={loadingRec}
+              className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-[15px] text-zinc-300 active:opacity-80 disabled:opacity-40"
             >
-              Dismiss
+              {loadingRec ? '⏳' : '↻ Try Another'}
+            </button>
+            <button
+              onClick={() => {
+                dismissRec(recommendation.name);
+                setRecommendation(null);
+              }}
+              className="px-4 py-2 text-[15px] text-zinc-500 active:opacity-60"
+            >
+              ✕
             </button>
           </div>
         </div>
