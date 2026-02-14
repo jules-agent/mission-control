@@ -6,6 +6,7 @@ import { CategoryTree } from './components/CategoryTree';
 import { IdentitySwitcher } from './components/IdentitySwitcher';
 import { OnboardingModal } from './components/OnboardingModal';
 import { IdentitySummary } from './components/IdentitySummary';
+import { AddInterestFlow } from './components/AddInterestFlow';
 import { BugReportButton } from '../components/BugReportButton';
 
 interface Identity {
@@ -43,6 +44,7 @@ export default function IdentityPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showAddInterest, setShowAddInterest] = useState(false);
   const selectedIdRef = useRef<string | null>(null);
 
   const supabase = createClient();
@@ -178,6 +180,42 @@ export default function IdentityPage() {
   }
 
   async function addInfluence(categoryId: string, name: string) { }
+
+  async function addInterestToCategory(categoryId: string, influence: { name: string; alignment: number; position: number }) {
+    const existing = influences[categoryId] || [];
+    // Insert at position, shift others
+    const updated = [...existing];
+    const newInf = {
+      id: crypto.randomUUID(),
+      category_id: categoryId,
+      name: influence.name,
+      alignment: influence.alignment,
+      position: influence.position,
+      mood_tags: [],
+    };
+    updated.splice(influence.position, 0, newInf);
+    // Reindex positions
+    updated.forEach((inf, i) => inf.position = i);
+    await updateInfluences(categoryId, updated);
+  }
+
+  async function createCategoryAndReturn(name: string, type: string, parentId: string | null): Promise<string | null> {
+    if (!selectedIdentity) return null;
+    try {
+      const level = parentId ? 2 : 1;
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({ identity_id: selectedIdentity.id, parent_id: parentId, name, type, level })
+        .select()
+        .single();
+      if (error) throw error;
+      await loadCategories(selectedIdentity.id);
+      return data?.id || null;
+    } catch (error) {
+      console.error('Error creating category:', error);
+      return null;
+    }
+  }
 
   async function updateInfluences(categoryId: string, updatedInfluences: Influence[]) {
     try {
@@ -429,6 +467,31 @@ export default function IdentityPage() {
           </div>
         )}
       </div>
+      {/* Floating Add Interest Button */}
+      {selectedIdentity && !showAddInterest && !showOnboarding && (
+        <button
+          onClick={() => setShowAddInterest(true)}
+          className="fixed bottom-8 right-6 w-14 h-14 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-full shadow-lg shadow-[#007AFF]/30 flex items-center justify-center transition-all z-40"
+          style={{ bottom: 'calc(32px + env(safe-area-inset-bottom))' }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+      )}
+
+      {/* Add Interest Flow */}
+      {showAddInterest && selectedIdentity && (
+        <AddInterestFlow
+          identityId={selectedIdentity.id}
+          categories={categories}
+          influences={influences}
+          onSave={addInterestToCategory}
+          onCreateCategory={createCategoryAndReturn}
+          onClose={() => { setShowAddInterest(false); if (selectedIdentity) loadCategories(selectedIdentity.id); }}
+        />
+      )}
+
       <BugReportButton appName="identity" />
     </div>
   );
