@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface Identity {
   id: string;
@@ -31,8 +31,36 @@ export function IdentitySwitcher({
   onDuplicateIdentity,
   onStartOnboarding,
 }: IdentitySwitcherProps) {
+  const [showModal, setShowModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus search when modal opens
+  useEffect(() => {
+    if (showModal && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [showModal]);
+
+  // Filter identities based on search
+  const filteredIdentities = identities.filter((identity) =>
+    identity.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Count total influences across all categories for an identity
+  const getInfluenceCount = (identity: Identity): number => {
+    // This would need actual influence data - for now return placeholder
+    // You could pass influence counts as props or fetch here
+    return 0;
+  };
+
+  const handleSelectFromModal = (identity: Identity) => {
+    onSelectIdentity(identity);
+    setShowModal(false);
+    setSearchQuery('');
+  };
 
   const handleRename = async () => {
     if (!selectedIdentity || !renameValue.trim() || renameValue === selectedIdentity.name) {
@@ -59,91 +87,258 @@ export function IdentitySwitcher({
   };
 
   return (
-    <div className="mb-2">
-      {/* Horizontal scrollable pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-        {identities.map((identity) => (
-          <button
-            key={identity.id}
-            onClick={() => onSelectIdentity(identity)}
-            className={`
-              flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full transition-all touch-manipulation
-              ${selectedIdentity?.id === identity.id
-                ? 'bg-[#007AFF] text-white shadow-lg shadow-blue-500/30'
-                : 'bg-zinc-800/60 text-zinc-300 active:bg-zinc-700/80'
-              }
-            `}
-          >
-            <span className="text-[15px] font-medium whitespace-nowrap">
-              {identity.name}
-            </span>
-            {identity.is_base && (
-              <span className="text-[11px] px-1.5 py-0.5 bg-black/20 rounded">
-                Primary
-              </span>
-            )}
-          </button>
-        ))}
-
-        {/* New Identity Button */}
+    <>
+      {/* Current Identity Display - Click to open selector */}
+      <div className="mb-6">
         <button
-          onClick={onStartOnboarding}
-          className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-zinc-800/40 border-2 border-dashed border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300 active:bg-zinc-700/60 transition-all touch-manipulation"
+          onClick={() => setShowModal(true)}
+          className="w-full flex items-center justify-between p-4 bg-zinc-900/60 hover:bg-zinc-900/80 active:bg-zinc-900 rounded-2xl transition-all group"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-semibold">
+              {selectedIdentity?.name?.[0]?.toUpperCase() || '?'}
+            </div>
+            <div className="text-left">
+              <div className="text-[17px] font-semibold text-white flex items-center gap-2">
+                {selectedIdentity?.name || 'Select Identity'}
+                {selectedIdentity?.is_base && (
+                  <span className="text-[11px] px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full">
+                    Primary
+                  </span>
+                )}
+              </div>
+              <div className="text-[13px] text-zinc-500">
+                Tap to switch • {identities.length} {identities.length === 1 ? 'identity' : 'identities'}
+              </div>
+            </div>
+          </div>
+          <svg
+            className="w-5 h-5 text-zinc-600 group-hover:text-zinc-500 transition-colors"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
-          <span className="text-[15px] font-medium whitespace-nowrap">New Identity</span>
         </button>
+
+        {/* Management Controls - Below identity display */}
+        {selectedIdentity && (
+          <div className="mt-3 px-1">
+            {renaming ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename();
+                    if (e.key === 'Escape') setRenaming(false);
+                  }}
+                  className="flex-1 py-2 px-3 bg-zinc-800 rounded-lg text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
+                  placeholder="Identity name"
+                  autoFocus
+                />
+                <button
+                  onClick={handleRename}
+                  className="px-4 py-2 text-[14px] text-[#007AFF] font-medium active:opacity-60"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setRenaming(false)}
+                  className="px-4 py-2 text-[14px] text-zinc-500 active:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    setRenameValue(selectedIdentity.name);
+                    setRenaming(true);
+                  }}
+                  className="text-[14px] text-zinc-400 hover:text-zinc-300 active:opacity-60 transition-all flex items-center gap-1.5 min-h-[44px]"
+                >
+                  <span className="text-base">✏️</span>
+                  Rename
+                </button>
+                <button
+                  onClick={handleDuplicate}
+                  className="text-[14px] text-zinc-400 hover:text-zinc-300 active:opacity-60 transition-all flex items-center gap-1.5 min-h-[44px]"
+                >
+                  <span className="text-base">📋</span>
+                  Duplicate
+                </button>
+                {identities.length > 1 && (
+                  <button
+                    onClick={handleDelete}
+                    className="text-[14px] text-red-400/70 hover:text-red-400 active:opacity-60 transition-all flex items-center gap-1.5 min-h-[44px]"
+                  >
+                    <span className="text-base">🗑️</span>
+                    Delete
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Action buttons below pills for selected identity */}
-      {selectedIdentity && (
-        <div className="flex items-center gap-4 mt-2 pl-1">
-          {renaming ? (
-            <div className="flex items-center gap-2 flex-1">
-              <input
-                type="text"
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setRenaming(false); }}
-                className="flex-1 py-1.5 px-3 bg-zinc-800 rounded-lg text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#007AFF]"
-                autoFocus
-              />
-              <button onClick={handleRename} className="text-[13px] text-[#007AFF] active:opacity-60 font-medium">Save</button>
-              <button onClick={() => setRenaming(false)} className="text-[13px] text-zinc-500 active:opacity-60">Cancel</button>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={() => { setRenameValue(selectedIdentity.name); setRenaming(true); }}
-                className="text-[13px] text-zinc-400 active:opacity-60 transition-opacity flex items-center gap-1"
-              >
-                ✏️ Rename
-              </button>
-              <button
-                onClick={handleDuplicate}
-                className="text-[13px] text-zinc-400 active:opacity-60 transition-opacity flex items-center gap-1"
-              >
-                📋 Duplicate
-              </button>
-              {identities.length > 1 && (
+      {/* Identity Selector Modal */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center"
+          onClick={() => {
+            setShowModal(false);
+            setSearchQuery('');
+          }}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+          {/* Modal Content */}
+          <div
+            className="relative w-full sm:max-w-md sm:mx-4 bg-zinc-900 sm:rounded-2xl rounded-t-3xl max-h-[85vh] sm:max-h-[600px] flex flex-col shadow-2xl animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with Search */}
+            <div className="p-4 border-b border-zinc-800">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[20px] font-semibold text-white">Switch Identity</h2>
                 <button
-                  onClick={handleDelete}
-                  className="text-[13px] text-red-400/70 active:opacity-60 transition-opacity flex items-center gap-1"
+                  onClick={() => {
+                    setShowModal(false);
+                    setSearchQuery('');
+                  }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 active:bg-zinc-700 transition-colors"
                 >
-                  🗑️ Delete
+                  <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search identities..."
+                  className="w-full pl-10 pr-4 py-3 bg-zinc-800/80 rounded-xl text-[15px] text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#007AFF] transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Identity List - Scrollable */}
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              {filteredIdentities.length === 0 ? (
+                <div className="py-12 text-center text-zinc-500 text-[15px]">
+                  No identities found
+                </div>
+              ) : (
+                <div className="p-2">
+                  {filteredIdentities.map((identity) => (
+                    <button
+                      key={identity.id}
+                      onClick={() => handleSelectFromModal(identity)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-800/60 active:bg-zinc-800 transition-all min-h-[56px] group"
+                    >
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-semibold flex-shrink-0">
+                        {identity.name[0]?.toUpperCase() || '?'}
+                      </div>
+
+                      {/* Identity Info */}
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[16px] font-medium text-white truncate">
+                            {identity.name}
+                          </span>
+                          {identity.is_base && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded flex-shrink-0">
+                              Primary
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[13px] text-zinc-500">
+                          {getInfluenceCount(identity)} influences
+                        </div>
+                      </div>
+
+                      {/* Checkmark for selected */}
+                      {selectedIdentity?.id === identity.id && (
+                        <svg
+                          className="w-6 h-6 text-[#007AFF] flex-shrink-0"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
               )}
-            </>
-          )}
+            </div>
+
+            {/* Footer with New Identity Button */}
+            <div className="p-4 border-t border-zinc-800">
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setSearchQuery('');
+                  onStartOnboarding();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-xl text-white text-[16px] font-semibold transition-all min-h-[52px]"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                New Identity
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-slide-up {
+          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @media (min-width: 640px) {
+          .animate-slide-up {
+            animation: none;
+          }
+        }
       `}</style>
-    </div>
+    </>
   );
 }
