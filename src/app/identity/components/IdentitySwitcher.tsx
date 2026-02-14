@@ -79,7 +79,7 @@ export function IdentitySwitcher({
             </span>
             {identity.is_base && (
               <span className="text-[11px] px-1.5 py-0.5 bg-black/20 rounded">
-                Base
+                Primary
               </span>
             )}
           </button>
