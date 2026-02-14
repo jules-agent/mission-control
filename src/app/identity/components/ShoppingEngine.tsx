@@ -191,6 +191,10 @@ export function ShoppingEngine({ identityId, categories: identityCategories, inf
 
   function handleCategorySelect(category: Category) {
     setSelectedCategory(category);
+  }
+
+  function handleCategoryNext() {
+    if (!selectedCategory) return;
     setStep('results');
     setOffset(0);
     setHasMore(true);
@@ -309,16 +313,33 @@ export function ShoppingEngine({ identityId, categories: identityCategories, inf
                 <button
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
-                  className="p-4 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl transition-all text-left min-h-[100px] flex flex-col justify-between"
+                  className={`p-4 border rounded-xl transition-all text-left min-h-[100px] flex flex-col justify-between ${
+                    selectedCategory === category.id
+                      ? 'bg-[#007AFF]/15 border-[#007AFF] ring-1 ring-[#007AFF]'
+                      : 'bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border-zinc-800'
+                  }`}
                 >
                   <div className="text-[32px] mb-2">{category.icon}</div>
                   <div>
-                    <p className="text-[15px] font-semibold mb-0.5">{category.name}</p>
+                    <p className={`text-[15px] font-semibold mb-0.5 ${selectedCategory === category.id ? 'text-[#007AFF]' : ''}`}>{category.name}</p>
                     <p className="text-[12px] text-zinc-500">{category.description}</p>
                   </div>
                 </button>
               ))}
             </div>
+
+            {/* Next Button */}
+            <button
+              onClick={handleCategoryNext}
+              disabled={!selectedCategory}
+              className={`w-full py-4 rounded-xl text-[17px] font-semibold transition-all ${
+                selectedCategory
+                  ? 'bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC]'
+                  : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+              }`}
+            >
+              Next
+            </button>
           </div>
         )}
 

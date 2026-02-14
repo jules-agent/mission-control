@@ -234,6 +234,10 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
 
   function handleCategorySelect(category: FoodCategory) {
     setSelectedCategory(category);
+  }
+
+  function handleCategoryNext() {
+    if (!selectedCategory) return;
     setStep('location');
   }
 
@@ -247,11 +251,18 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
 
   function handleModeSelect(mode: DiningMode) {
     setDiningMode(mode);
+  }
+
+  function handleModeNext() {
+    if (!diningMode) return;
     setStep('time');
   }
 
   function handleTimeSelect(time: number) {
     setMaxTime(time);
+  }
+
+  function handleTimeNext() {
     setStep('results');
     setOffset(0);
     setHasMore(true);
@@ -382,15 +393,31 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
                 <button
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
-                  className="p-4 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl transition-all text-left min-h-[100px] flex flex-col justify-between"
+                  className={`p-4 border rounded-xl transition-all text-left min-h-[100px] flex flex-col justify-between ${
+                    selectedCategory === category.id
+                      ? 'bg-[#007AFF]/15 border-[#007AFF] ring-1 ring-[#007AFF]'
+                      : 'bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border-zinc-800'
+                  }`}
                 >
                   <div className="text-[32px] mb-2">{category.icon}</div>
                   <div>
-                    <p className="text-[15px] font-semibold">{category.name}</p>
+                    <p className={`text-[15px] font-semibold ${selectedCategory === category.id ? 'text-[#007AFF]' : ''}`}>{category.name}</p>
                   </div>
                 </button>
               ))}
             </div>
+
+            <button
+              onClick={handleCategoryNext}
+              disabled={!selectedCategory}
+              className={`w-full py-4 rounded-xl text-[17px] font-semibold transition-all ${
+                selectedCategory
+                  ? 'bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC]'
+                  : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+              }`}
+            >
+              Next
+            </button>
           </div>
         )}
 
@@ -459,22 +486,42 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
             <div className="grid grid-cols-1 gap-4">
               <button
                 onClick={() => handleModeSelect('dine-in')}
-                className="p-6 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl transition-all min-h-[120px] flex flex-col items-center justify-center gap-3"
+                className={`p-6 border rounded-xl transition-all min-h-[120px] flex flex-col items-center justify-center gap-3 ${
+                  diningMode === 'dine-in'
+                    ? 'bg-[#007AFF]/15 border-[#007AFF] ring-1 ring-[#007AFF]'
+                    : 'bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border-zinc-800'
+                }`}
               >
                 <div className="text-[48px]">🍽️</div>
-                <p className="text-[20px] font-semibold">Dine In</p>
+                <p className={`text-[20px] font-semibold ${diningMode === 'dine-in' ? 'text-[#007AFF]' : ''}`}>Dine In</p>
                 <p className="text-[13px] text-zinc-500">Find restaurants to visit</p>
               </button>
 
               <button
                 onClick={() => handleModeSelect('delivery')}
-                className="p-6 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl transition-all min-h-[120px] flex flex-col items-center justify-center gap-3"
+                className={`p-6 border rounded-xl transition-all min-h-[120px] flex flex-col items-center justify-center gap-3 ${
+                  diningMode === 'delivery'
+                    ? 'bg-[#007AFF]/15 border-[#007AFF] ring-1 ring-[#007AFF]'
+                    : 'bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border-zinc-800'
+                }`}
               >
                 <div className="text-[48px]">🚗</div>
-                <p className="text-[20px] font-semibold">Delivery</p>
+                <p className={`text-[20px] font-semibold ${diningMode === 'delivery' ? 'text-[#007AFF]' : ''}`}>Delivery</p>
                 <p className="text-[13px] text-zinc-500">Get food delivered</p>
               </button>
             </div>
+
+            <button
+              onClick={handleModeNext}
+              disabled={!diningMode}
+              className={`w-full py-4 rounded-xl text-[17px] font-semibold transition-all ${
+                diningMode
+                  ? 'bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC]'
+                  : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+              }`}
+            >
+              Next
+            </button>
           </div>
         )}
 
@@ -493,12 +540,23 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
                 <button
                   key={time}
                   onClick={() => handleTimeSelect(time)}
-                  className="px-4 py-6 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl text-[17px] font-semibold transition-all"
+                  className={`px-4 py-6 border rounded-xl text-[17px] font-semibold transition-all ${
+                    maxTime === time
+                      ? 'bg-[#007AFF] border-[#007AFF] text-white'
+                      : 'bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border-zinc-800'
+                  }`}
                 >
                   {time} min
                 </button>
               ))}
             </div>
+
+            <button
+              onClick={handleTimeNext}
+              className="w-full py-4 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-xl text-[17px] font-semibold transition-all"
+            >
+              Next
+            </button>
           </div>
         )}
 

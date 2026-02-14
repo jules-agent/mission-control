@@ -711,6 +711,24 @@ export default function IdentityPage() {
               <button onClick={() => setShowProfileEdit(false)} className="text-zinc-500 hover:text-zinc-300 text-[15px] p-1">Done</button>
             </div>
             <div className="p-5 space-y-6">
+              {/* Rename */}
+              <div>
+                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-2">✏️ Name</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    defaultValue={selectedIdentity.name}
+                    onBlur={(e) => {
+                      const val = e.target.value.trim();
+                      if (val && val !== selectedIdentity.name) renameIdentity(selectedIdentity, val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                    }}
+                    className="flex-1 py-2.5 px-3 bg-zinc-800 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
+                  />
+                </div>
+              </div>
               {/* Location */}
               <div>
                 <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-2">📍 Location</label>
@@ -727,6 +745,27 @@ export default function IdentityPage() {
                 physicalAttributes={selectedIdentity.physical_attributes}
                 onSave={updatePhysicalAttributes}
               />
+              {/* Actions */}
+              <div className="pt-2 space-y-2">
+                <button
+                  onClick={() => { duplicateIdentity(selectedIdentity); setShowProfileEdit(false); }}
+                  className="w-full py-3 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80 transition-all flex items-center justify-center gap-2"
+                >
+                  📋 Duplicate Identity
+                </button>
+                {identities.length > 1 && (
+                  <button
+                    onClick={() => {
+                      if (!confirm(`Delete "${selectedIdentity.name}"? This will remove all categories and influences.`)) return;
+                      deleteIdentity(selectedIdentity);
+                      setShowProfileEdit(false);
+                    }}
+                    className="w-full py-3 rounded-xl text-[15px] font-semibold bg-red-500/10 border border-red-500/30 text-red-400 active:opacity-80 transition-all flex items-center justify-center gap-2"
+                  >
+                    🗑️ Delete Identity
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

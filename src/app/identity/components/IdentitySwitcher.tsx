@@ -145,76 +145,10 @@ export function IdentitySwitcher({
             </svg>
           </button>
 
-          {/* Edit menu button */}
-          {selectedIdentity && (
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowEditMenu(!showEditMenu);
-                }}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-900/60 hover:bg-zinc-800 active:bg-zinc-700 transition-all"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-zinc-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                </svg>
-              </button>
-
-              {/* Edit dropdown */}
-              {showEditMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowEditMenu(false)} />
-                  <div className="absolute right-0 top-12 z-50 w-44 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden">
-                    <button
-                      onClick={() => {
-                        setRenameValue(selectedIdentity.name);
-                        setRenaming(true);
-                        setShowEditMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-3 text-[14px] text-zinc-300 hover:bg-zinc-700 transition-colors flex items-center gap-2"
-                    >
-                      ✏️ Rename
-                    </button>
-                    <button
-                      onClick={() => { handleDuplicate(); setShowEditMenu(false); }}
-                      className="w-full text-left px-4 py-3 text-[14px] text-zinc-300 hover:bg-zinc-700 transition-colors flex items-center gap-2 border-t border-zinc-700/50"
-                    >
-                      📋 Duplicate
-                    </button>
-                    {identities.length > 1 && (
-                      <button
-                        onClick={() => { handleDelete(); setShowEditMenu(false); }}
-                        className="w-full text-left px-4 py-3 text-[14px] text-red-400 hover:bg-zinc-700 transition-colors flex items-center gap-2 border-t border-zinc-700/50"
-                      >
-                        🗑️ Delete
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+          {/* Edit menu moved to Profile Edit sheet (✏️ icon) */}
         </div>
 
-        {/* Inline rename */}
-        {renaming && selectedIdentity && (
-          <div className="flex items-center gap-2 mt-2">
-            <input
-              type="text"
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRename();
-                if (e.key === 'Escape') setRenaming(false);
-              }}
-              className="flex-1 py-2 px-3 bg-zinc-800 rounded-lg text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
-              placeholder="Identity name"
-              autoFocus
-            />
-            <button onClick={handleRename} className="px-3 py-2 text-[14px] text-[#007AFF] font-medium active:opacity-60">Save</button>
-            <button onClick={() => setRenaming(false)} className="px-3 py-2 text-[14px] text-zinc-500 active:opacity-60">Cancel</button>
-          </div>
-        )}
+          {/* Inline rename moved to Profile Edit sheet */}
       </div>
 
       {/* Identity Selector Modal */}
