@@ -58,6 +58,13 @@ export function AddInterestFlow({ identityId, categories, influences, onSave, on
     } else {
       inputRef.current?.focus();
     }
+    // Cleanup: stop mic on unmount
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch {}
+        recognitionRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -235,7 +242,7 @@ export function AddInterestFlow({ identityId, categories, influences, onSave, on
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/60">
           <h2 className="text-[17px] font-semibold">Add Interest</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 text-[15px]">Done</button>
+          <button onClick={() => { try { recognitionRef.current?.stop(); } catch {} onClose(); }} className="text-zinc-500 hover:text-zinc-300 text-[15px]">Done</button>
         </div>
 
         <div className="px-5 py-4 overflow-y-auto flex-1">
