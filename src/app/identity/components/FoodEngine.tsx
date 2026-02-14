@@ -1,58 +1,93 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect, useRef } from 'react';
 
 interface FoodEngineProps {
   identityId: string;
+  categories: Category[];
+  influences: Record<string, Influence[]>;
+  location: {
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+  onAddInfluence?: (categoryId: string, influence: { name: string; alignment: number; position: number }) => void;
   onClose: () => void;
 }
 
-interface Identity {
-  city?: string;
-  state?: string;
-  country?: string;
-  physical_attributes?: Record<string, any>;
+interface Category {
+  id: string;
+  identity_id: string;
+  parent_id: string | null;
+  name: string;
+  type: string;
+  level: number;
+  subcategories?: Category[];
 }
 
-interface SearchParams {
-  identityId: string;
-  category: string;
-  budgetMin: number;
-  budgetMax: number;
-  location: string;
-  mode: 'dine-in' | 'delivery';
-  maxDriveMinutes: number;
-  offset: number;
-  limit: number;
+interface Influence {
+  id: string;
+  category_id?: string;
+  name: string;
+  alignment: number;
+  position: number;
+  mood_tags?: string[];
 }
 
-interface DineInResult {
+interface Restaurant {
   name: string;
   cuisine: string;
   priceRange: string;
-  driveMinutes: number;
-  rating?: string;
+  time: number; // minutes (drive time or delivery time)
+  rating?: number;
   reason: string;
-  address: string;
-  mapsUrl: string;
-  menuUrl: string;
+  address?: string;
+  directionsUrl?: string;
+  menuUrl?: string;
+  deliveryPlatforms?: {
+    name: string;
+    url: string;
+  }[];
 }
 
-interface DeliveryResult {
+type FoodCategory =
+  | 'japanese'
+  | 'bbq'
+  | 'mexican'
+  | 'italian'
+  | 'korean'
+  | 'indian'
+  | 'mediterranean'
+  | 'thai'
+  | 'chinese'
+  | 'american'
+  | 'seafood'
+  | 'healthy'
+  | 'breakfast'
+  | 'surprise';
+
+interface FoodCategoryOption {
+  id: FoodCategory;
   name: string;
-  cuisine: string;
-  priceRange: string;
-  deliveryMinutes: number;
-  reason: string;
-  platforms: string[];
-  doordashUrl?: string;
-  ubereatsUrl?: string;
-  grubhubUrl?: string;
+  icon: string;
 }
 
-type SearchResult = DineInResult | DeliveryResult;
+const FOOD_CATEGORIES: FoodCategoryOption[] = [
+  { id: 'japanese', name: 'Japanese/Sushi', icon: '🍣' },
+  { id: 'bbq', name: 'BBQ/Steakhouse', icon: '🥩' },
+  { id: 'mexican', name: 'Mexican', icon: '🌮' },
+  { id: 'italian', name: 'Italian/Pizza', icon: '🍕' },
+  { id: 'korean', name: 'Korean', icon: '🥘' },
+  { id: 'indian', name: 'Indian', icon: '🍛' },
+  { id: 'mediterranean', name: 'Middle Eastern/Mediterranean', icon: '🧆' },
+  { id: 'thai', name: 'Thai/Vietnamese', icon: '🍜' },
+  { id: 'chinese', name: 'Chinese', icon: '🥡' },
+  { id: 'american', name: 'American/Burgers', icon: '🍔' },
+  { id: 'seafood', name: 'Seafood', icon: '🐟' },
+  { id: 'healthy', name: 'Healthy/Salads', icon: '🥗' },
+  { id: 'breakfast', name: 'Breakfast/Brunch', icon: '🍳' },
+  { id: 'surprise', name: 'Surprise Me', icon: '🔥' },
+];
 
 const BUDGET_PRESETS = [
   { label: 'Under $15', min: 0, max: 15 },
@@ -62,206 +97,247 @@ const BUDGET_PRESETS = [
   { label: '$100+ (Fine Dining)', min: 100, max: 500 },
 ];
 
-const CATEGORIES = [
-  { id: 'japanese', label: 'Japanese / Sushi', icon: '🍣' },
-  { id: 'bbq', label: 'BBQ & Steakhouse', icon: '🥩' },
-  { id: 'mexican', label: 'Mexican', icon: '🌮' },
-  { id: 'italian', label: 'Italian / Pizza', icon: '🍕' },
-  { id: 'korean', label: 'Korean', icon: '🥘' },
-  { id: 'indian', label: 'Indian', icon: '🍛' },
-  { id: 'mediterranean', label: 'Middle Eastern / Mediterranean', icon: '🧆' },
-  { id: 'thai', label: 'Thai / Vietnamese', icon: '🍜' },
-  { id: 'chinese', label: 'Chinese', icon: '🥡' },
-  { id: 'american', label: 'American / Burgers', icon: '🍔' },
-  { id: 'seafood', label: 'Seafood', icon: '🐟' },
-  { id: 'healthy', label: 'Healthy / Salads', icon: '🥗' },
-  { id: 'breakfast', label: 'Breakfast / Brunch', icon: '🍳' },
-  { id: 'surprise', label: 'Surprise Me', icon: '🔥' },
-];
+const TIME_PRESETS = [5, 10, 15, 20, 30, 45, 60];
 
-const DRIVE_TIME_PRESETS = [5, 10, 15, 20, 30, 45, 60];
+type DiningMode = 'dine-in' | 'delivery';
 
-export function FoodEngine({ identityId, onClose }: FoodEngineProps) {
-  const [mounted, setMounted] = useState(false);
-  const [step, setStep] = useState(1);
+export function FoodEngine({ identityId, categories, influences, location, onClose }: FoodEngineProps) {
+  const [step, setStep] = useState<'budget' | 'category' | 'location' | 'mode' | 'time' | 'results'>('budget');
   const [budgetMin, setBudgetMin] = useState(15);
   const [budgetMax, setBudgetMax] = useState(30);
-  const [category, setCategory] = useState('');
-  const [location, setLocation] = useState('');
-  const [customLocation, setCustomLocation] = useState('');
-  const [showCustomLocation, setShowCustomLocation] = useState(false);
-  const [mode, setMode] = useState<'dine-in' | 'delivery' | null>(null);
-  const [maxDriveMinutes, setMaxDriveMinutes] = useState(20);
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<FoodCategory | null>(null);
+  const [locationInput, setLocationInput] = useState({
+    city: location.city || '',
+    state: location.state || '',
+    country: location.country || 'USA',
+  });
+  const [diningMode, setDiningMode] = useState<DiningMode | null>(null);
+  const [maxTime, setMaxTime] = useState(15);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
-  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
-  const supabase = createClient();
-
+  // Infinite scroll handler
   useEffect(() => {
-    setMounted(true);
-    loadIdentity();
-  }, []);
+    if (step !== 'results' || !hasMore || loading) return;
 
-  async function loadIdentity() {
-    const { data, error } = await supabase
-      .from('identities')
-      .select('city, state, country, physical_attributes')
-      .eq('id', identityId)
-      .single();
-    
-    if (!error && data) {
-      setIdentity(data);
-      if (data.city && data.state) {
-        setLocation(`${data.city}, ${data.state}`);
+    const container = resultsRef.current;
+    if (!container) return;
+
+    function handleScroll() {
+      if (!container) return;
+      const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (scrollBottom < 200 && hasMore && !loading) {
+        loadMoreRestaurants();
       }
     }
-  }
 
-  async function handleSearch() {
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [step, hasMore, loading, offset]);
+
+  async function loadRestaurants(newOffset: number = 0) {
+    if (!selectedCategory || !diningMode) return;
+
     setLoading(true);
     try {
-      const params: SearchParams = {
-        identityId,
-        category,
-        budgetMin,
-        budgetMax,
-        location: showCustomLocation && customLocation ? customLocation : location,
-        mode: mode!,
-        maxDriveMinutes,
-        offset: 0,
-        limit: 10,
-      };
-
       const response = await fetch('/api/identity/food', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
+        body: JSON.stringify({
+          identityId,
+          category: selectedCategory,
+          budgetMin,
+          budgetMax,
+          location: locationInput,
+          mode: diningMode,
+          maxDriveMinutes: maxTime,
+          offset: newOffset,
+          limit: 10,
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to search');
-      }
+      if (!response.ok) throw new Error('Failed to load restaurants');
 
       const data = await response.json();
-      setResults(data.results || []);
-      setStep(6);
+
+      if (newOffset === 0) {
+        setRestaurants(data.restaurants || []);
+      } else {
+        setRestaurants((prev) => [...prev, ...(data.restaurants || [])]);
+      }
+
+      if (!data.restaurants || data.restaurants.length < 10) {
+        setHasMore(false);
+      }
     } catch (error) {
-      console.error('Search error:', error);
-      alert('Failed to search for restaurants. Please try again.');
+      console.error('Error loading restaurants:', error);
+      alert('Failed to load recommendations. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
-  function handleBudgetSelect(min: number, max: number) {
-    setBudgetMin(min);
-    setBudgetMax(max);
-    setStep(2);
+  function loadMoreRestaurants() {
+    const newOffset = offset + 10;
+    setOffset(newOffset);
+    loadRestaurants(newOffset);
   }
 
-  function handleCategorySelect(categoryId: string) {
-    setCategory(categoryId);
-    setStep(3);
+  function handleCategorySelect(category: FoodCategory) {
+    setSelectedCategory(category);
+    setStep('location');
   }
 
   function handleLocationNext() {
-    const finalLocation = showCustomLocation && customLocation ? customLocation : location;
-    if (!finalLocation) {
-      alert('Please enter a location');
+    if (!locationInput.city || !locationInput.state) {
+      alert('Please enter a city and state');
       return;
     }
-    setStep(4);
+    setStep('mode');
   }
 
-  function handleModeSelect(selectedMode: 'dine-in' | 'delivery') {
-    setMode(selectedMode);
-    setStep(5);
+  function handleModeSelect(mode: DiningMode) {
+    setDiningMode(mode);
+    setStep('time');
+  }
+
+  function handleTimeSelect(time: number) {
+    setMaxTime(time);
+    setStep('results');
+    setOffset(0);
+    setHasMore(true);
+    loadRestaurants(0);
   }
 
   function handleBack() {
-    if (step > 1) {
-      setStep(step - 1);
+    if (step === 'results') {
+      setStep('time');
+      setRestaurants([]);
+      setOffset(0);
+      setHasMore(true);
+    } else if (step === 'time') {
+      setStep('mode');
+    } else if (step === 'mode') {
+      setStep('location');
+    } else if (step === 'location') {
+      setStep('category');
+    } else if (step === 'category') {
+      setStep('budget');
     }
   }
 
-  function isDineInResult(result: SearchResult): result is DineInResult {
-    return mode === 'dine-in';
-  }
+  const stepNumber =
+    step === 'budget' ? 1 : step === 'category' ? 2 : step === 'location' ? 3 : step === 'mode' ? 4 : step === 'time' ? 5 : 6;
 
-  if (!mounted) return null;
-
-  const modal = (
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+  return (
+    <div className="fixed inset-0 z-[100] bg-black" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* Header */}
-      <div className="pt-[env(safe-area-inset-top)] sticky top-0 z-10 bg-black/80 backdrop-blur-xl border-b border-zinc-800/60">
-        <div className="px-4 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-xl border-b border-zinc-800/60">
+        <div className="max-w-md landscape:max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
-            onClick={step === 6 ? handleBack : onClose}
-            className="text-[17px] text-[#007AFF] active:opacity-60 transition-opacity"
+            onClick={step === 'budget' ? onClose : handleBack}
+            className="text-[17px] text-[#007AFF] active:opacity-60 transition-opacity flex items-center gap-1"
           >
-            {step === 6 ? '← Back' : 'Close'}
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            {step === 'budget' ? 'Close' : 'Back'}
           </button>
-          <h2 className="text-[17px] font-semibold">🍣 Food Finder</h2>
-          <div className="w-16"></div>
-        </div>
-        {/* Step Indicator */}
-        {step < 6 && (
-          <div className="px-4 pb-3">
-            <div className="flex items-center justify-center gap-1.5">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <div
-                  key={s}
-                  className={`h-1.5 rounded-full transition-all ${
-                    s === step ? 'w-8 bg-[#007AFF]' : s < step ? 'w-6 bg-[#007AFF]/50' : 'w-6 bg-zinc-700'
-                  }`}
-                />
-              ))}
-            </div>
-            <p className="text-center text-[13px] text-zinc-500 mt-2">Step {step} of 5</p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-[17px] font-semibold">Food</h2>
+            <span className="text-[13px] text-zinc-500">Step {stepNumber}/6</span>
           </div>
-        )}
+          <div className="w-16" /> {/* Spacer for centering */}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto pb-[calc(24px+env(safe-area-inset-bottom))]">
+      <div className="max-w-md landscape:max-w-2xl mx-auto px-4 py-6 h-full overflow-y-auto" ref={resultsRef}>
         {/* Step 1: Budget */}
-        {step === 1 && (
-          <div className="p-4 space-y-4">
-            <div className="text-center py-8">
-              <h3 className="text-[22px] font-semibold mb-2">What's your budget?</h3>
+        {step === 'budget' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-[22px] font-semibold mb-2">Set your budget</h3>
               <p className="text-[15px] text-zinc-500">Per person</p>
             </div>
-            <div className="space-y-3">
-              {BUDGET_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  onClick={() => handleBudgetSelect(preset.min, preset.max)}
-                  className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-left active:bg-zinc-800 transition-colors"
-                >
-                  <div className="text-[17px] font-medium">{preset.label}</div>
-                </button>
-              ))}
+
+            {/* Budget Inputs */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[13px] text-zinc-500 mb-2">Min ($)</label>
+                <input
+                  type="number"
+                  value={budgetMin}
+                  onChange={(e) => setBudgetMin(Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[17px] text-white focus:outline-none focus:border-[#007AFF] transition-colors"
+                  min={0}
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] text-zinc-500 mb-2">Max ($)</label>
+                <input
+                  type="number"
+                  value={budgetMax}
+                  onChange={(e) => setBudgetMax(Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[17px] text-white focus:outline-none focus:border-[#007AFF] transition-colors"
+                  min={0}
+                />
+              </div>
             </div>
+
+            {/* Budget Presets */}
+            <div>
+              <p className="text-[13px] text-zinc-500 mb-3">Quick select:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {BUDGET_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => {
+                      setBudgetMin(preset.min);
+                      setBudgetMax(preset.max);
+                    }}
+                    className="px-4 py-3 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl text-[15px] font-medium transition-all"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => setStep('category')}
+              className="w-full py-4 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-xl text-[17px] font-semibold transition-all"
+            >
+              Next
+            </button>
           </div>
         )}
 
-        {/* Step 2: Category */}
-        {step === 2 && (
-          <div className="p-4 space-y-4">
-            <div className="text-center py-8">
-              <h3 className="text-[22px] font-semibold mb-2">What sounds good?</h3>
-              <p className="text-[15px] text-zinc-500">Choose a cuisine</p>
+        {/* Step 2: Category Selection */}
+        {step === 'category' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-[22px] font-semibold mb-2">What are you craving?</h3>
+              <p className="text-[15px] text-zinc-500">
+                ${budgetMin} - ${budgetMax} per person
+              </p>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
-              {CATEGORIES.map((cat) => (
+              {FOOD_CATEGORIES.map((category) => (
                 <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat.id)}
-                  className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-left active:bg-zinc-800 transition-colors min-h-[80px]"
+                  key={category.id}
+                  onClick={() => handleCategorySelect(category.id)}
+                  className="p-4 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl transition-all text-left min-h-[100px] flex flex-col justify-between"
                 >
-                  <div className="text-[28px] mb-1">{cat.icon}</div>
-                  <div className="text-[15px] font-medium leading-tight">{cat.label}</div>
+                  <div className="text-[32px] mb-2">{category.icon}</div>
+                  <div>
+                    <p className="text-[15px] font-semibold">{category.name}</p>
+                  </div>
                 </button>
               ))}
             </div>
@@ -269,235 +345,236 @@ export function FoodEngine({ identityId, onClose }: FoodEngineProps) {
         )}
 
         {/* Step 3: Location */}
-        {step === 3 && (
-          <div className="p-4 space-y-6">
-            <div className="text-center py-8">
+        {step === 'location' && (
+          <div className="space-y-6">
+            <div>
               <h3 className="text-[22px] font-semibold mb-2">Where are you?</h3>
-              <p className="text-[15px] text-zinc-500">We'll find nearby options</p>
+              <p className="text-[15px] text-zinc-500">We'll find places nearby</p>
             </div>
 
-            {location && !showCustomLocation && (
-              <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
-                <p className="text-[15px] text-zinc-500 mb-2">Current location</p>
-                <p className="text-[17px] font-medium">📍 {location}</p>
-              </div>
-            )}
-
-            {(!location || showCustomLocation) && (
+            <div className="space-y-4">
               <div>
-                <label className="block text-[15px] text-zinc-500 mb-2">Enter location</label>
+                <label className="block text-[13px] text-zinc-500 mb-2">City</label>
                 <input
                   type="text"
-                  value={customLocation}
-                  onChange={(e) => setCustomLocation(e.target.value)}
-                  placeholder="e.g. Venice, California"
-                  className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[17px] focus:outline-none focus:border-[#007AFF] transition-colors"
+                  value={locationInput.city}
+                  onChange={(e) => setLocationInput({ ...locationInput, city: e.target.value })}
+                  placeholder="e.g. Los Angeles"
+                  className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[17px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF] transition-colors"
                 />
               </div>
-            )}
 
-            {location && !showCustomLocation && (
-              <button
-                onClick={() => setShowCustomLocation(true)}
-                className="w-full text-[15px] text-[#007AFF] active:opacity-60 transition-opacity"
-              >
-                Use different location
-              </button>
-            )}
+              <div>
+                <label className="block text-[13px] text-zinc-500 mb-2">State</label>
+                <input
+                  type="text"
+                  value={locationInput.state}
+                  onChange={(e) => setLocationInput({ ...locationInput, state: e.target.value })}
+                  placeholder="e.g. CA"
+                  className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[17px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF] transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[13px] text-zinc-500 mb-2">Country</label>
+                <input
+                  type="text"
+                  value={locationInput.country}
+                  onChange={(e) => setLocationInput({ ...locationInput, country: e.target.value })}
+                  placeholder="e.g. USA"
+                  className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[17px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF] transition-colors"
+                />
+              </div>
+            </div>
 
             <button
               onClick={handleLocationNext}
-              className="w-full py-4 bg-[#007AFF] rounded-xl text-[17px] font-semibold active:bg-[#0064CC] transition-colors"
+              className="w-full py-4 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-xl text-[17px] font-semibold transition-all"
             >
               Next
             </button>
           </div>
         )}
 
-        {/* Step 4: Mode */}
-        {step === 4 && (
-          <div className="p-4 space-y-4">
-            <div className="text-center py-8">
-              <h3 className="text-[22px] font-semibold mb-2">Dine in or delivery?</h3>
-              <p className="text-[15px] text-zinc-500">How do you want to eat?</p>
+        {/* Step 4: Dining Mode */}
+        {step === 'mode' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-[22px] font-semibold mb-2">How do you want to eat?</h3>
+              <p className="text-[15px] text-zinc-500">
+                {locationInput.city}, {locationInput.state}
+              </p>
             </div>
-            <div className="space-y-3">
+
+            <div className="grid grid-cols-1 gap-4">
               <button
                 onClick={() => handleModeSelect('dine-in')}
-                className="w-full p-6 bg-zinc-900 border border-zinc-800 rounded-xl text-left active:bg-zinc-800 transition-colors"
+                className="p-6 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl transition-all min-h-[120px] flex flex-col items-center justify-center gap-3"
               >
-                <div className="text-[32px] mb-2">🍽️</div>
-                <div className="text-[20px] font-semibold mb-1">Dine In</div>
-                <div className="text-[15px] text-zinc-500">Find restaurants nearby</div>
+                <div className="text-[48px]">🍽️</div>
+                <p className="text-[20px] font-semibold">Dine In</p>
+                <p className="text-[13px] text-zinc-500">Find restaurants to visit</p>
               </button>
+
               <button
                 onClick={() => handleModeSelect('delivery')}
-                className="w-full p-6 bg-zinc-900 border border-zinc-800 rounded-xl text-left active:bg-zinc-800 transition-colors"
+                className="p-6 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl transition-all min-h-[120px] flex flex-col items-center justify-center gap-3"
               >
-                <div className="text-[32px] mb-2">🚗</div>
-                <div className="text-[20px] font-semibold mb-1">Delivery</div>
-                <div className="text-[15px] text-zinc-500">Order to your door</div>
+                <div className="text-[48px]">🚗</div>
+                <p className="text-[20px] font-semibold">Delivery</p>
+                <p className="text-[13px] text-zinc-500">Get food delivered</p>
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 5: Drive Time */}
-        {step === 5 && (
-          <div className="p-4 space-y-6">
-            <div className="text-center py-8">
-              <h3 className="text-[22px] font-semibold mb-2">How far will you go?</h3>
-              <p className="text-[15px] text-zinc-500">
-                Max {mode === 'dine-in' ? 'drive' : 'delivery'} time
-              </p>
+        {/* Step 5: Time */}
+        {step === 'time' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-[22px] font-semibold mb-2">
+                {diningMode === 'dine-in' ? 'Max drive time?' : 'Max delivery time?'}
+              </h3>
+              <p className="text-[15px] text-zinc-500">We'll show places within this time</p>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
-              {DRIVE_TIME_PRESETS.map((time) => (
+            <div className="grid grid-cols-3 gap-3">
+              {TIME_PRESETS.map((time) => (
                 <button
                   key={time}
-                  onClick={() => setMaxDriveMinutes(time)}
-                  className={`p-4 rounded-xl text-[17px] font-medium transition-all ${
-                    maxDriveMinutes === time
-                      ? 'bg-[#007AFF] text-white'
-                      : 'bg-zinc-900 border border-zinc-800 active:bg-zinc-800'
-                  }`}
+                  onClick={() => handleTimeSelect(time)}
+                  className="px-4 py-6 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 rounded-xl text-[17px] font-semibold transition-all"
                 >
-                  {time}m
+                  {time} min
                 </button>
               ))}
             </div>
-
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="w-full py-4 bg-[#007AFF] rounded-xl text-[17px] font-semibold active:bg-[#0064CC] transition-colors disabled:opacity-50 disabled:active:bg-[#007AFF]"
-            >
-              {loading ? 'Finding Food...' : 'Find Food →'}
-            </button>
           </div>
         )}
 
         {/* Step 6: Results */}
-        {step === 6 && (
-          <div className="space-y-4">
-            <div className="px-4 pt-4 pb-2 sticky top-0 bg-black/80 backdrop-blur-xl">
-              <h3 className="text-[20px] font-semibold">
-                {CATEGORIES.find(c => c.id === category)?.icon} {CATEGORIES.find(c => c.id === category)?.label}
+        {step === 'results' && (
+          <div className="space-y-4 pb-8">
+            <div className="mb-6">
+              <h3 className="text-[22px] font-semibold mb-1">
+                {FOOD_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
               </h3>
-              <p className="text-[13px] text-zinc-500 mt-1">
-                ${budgetMin}-${budgetMax} · {mode === 'dine-in' ? 'Dine In' : 'Delivery'} · {maxDriveMinutes} min
+              <p className="text-[15px] text-zinc-500">
+                ${budgetMin} - ${budgetMax} • {diningMode === 'dine-in' ? `${maxTime} min drive` : `${maxTime} min delivery`}
               </p>
             </div>
 
-            {loading && (
-              <div className="px-4 space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl animate-pulse">
-                    <div className="h-5 bg-zinc-800 rounded w-3/4 mb-3"></div>
-                    <div className="h-4 bg-zinc-800 rounded w-1/2 mb-2"></div>
-                    <div className="h-4 bg-zinc-800 rounded w-full"></div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!loading && results.length === 0 && (
-              <div className="px-4 py-12 text-center">
-                <p className="text-[17px] text-zinc-500">No results found. Try adjusting your search.</p>
-              </div>
-            )}
-
-            {!loading && results.length > 0 && (
-              <div className="px-4 space-y-3 pb-4">
-                {results.map((result, i) => (
-                  <div key={i} className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
-                    <div>
-                      <h4 className="text-[17px] font-semibold mb-1">{result.name}</h4>
-                      <div className="flex items-center gap-2 text-[13px]">
-                        <span className="text-zinc-400">{result.cuisine}</span>
-                        <span className="text-[#34C759]">{result.priceRange}</span>
-                        {isDineInResult(result) && result.rating && (
-                          <span className="text-zinc-400">⭐ {result.rating}</span>
-                        )}
-                      </div>
+            {/* Restaurant Cards */}
+            {restaurants.map((restaurant, index) => (
+              <div key={`${restaurant.name}-${index}`} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h4 className="text-[17px] font-semibold text-white mb-1">{restaurant.name}</h4>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[12px] text-zinc-400">
+                        {restaurant.cuisine}
+                      </span>
+                      <span className="text-[15px] font-bold text-[#34C759]">{restaurant.priceRange}</span>
                     </div>
+                  </div>
+                  {restaurant.rating && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[15px]">⭐</span>
+                      <span className="text-[15px] font-semibold">{restaurant.rating}</span>
+                    </div>
+                  )}
+                </div>
 
-                    <p className="text-[15px] text-zinc-400">{result.reason}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-semibold text-[#FF9500]">
+                    {restaurant.time} min {diningMode === 'dine-in' ? 'drive' : 'delivery'}
+                  </span>
+                </div>
 
-                    {isDineInResult(result) ? (
-                      <>
-                        <div className="flex items-center gap-2 text-[13px]">
-                          <span className="text-[#FF9500]">🚗 {result.driveMinutes} min away</span>
-                        </div>
-                        <p className="text-[13px] text-zinc-500">{result.address}</p>
-                        <div className="flex gap-2 pt-2">
-                          <a
-                            href={result.mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 py-2.5 bg-[#007AFF] rounded-lg text-center text-[15px] font-medium active:bg-[#0064CC] transition-colors"
-                          >
-                            Directions →
-                          </a>
-                          <a
-                            href={result.menuUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 py-2.5 bg-zinc-800 rounded-lg text-center text-[15px] font-medium active:bg-zinc-700 transition-colors"
-                          >
-                            Menu →
-                          </a>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2 text-[13px]">
-                          <span className="text-[#FF9500]">🚗 {result.deliveryMinutes} min delivery</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {result.platforms.map((platform) => (
-                            <span key={platform} className="px-2 py-1 bg-zinc-800 rounded-full text-[11px] text-zinc-400">
-                              {platform}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 pt-2">
-                          {result.doordashUrl && (
-                            <a
-                              href={result.doordashUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="py-2 px-2 bg-[#FF3008] rounded-lg text-center text-[13px] font-medium active:opacity-80 transition-opacity"
-                            >
-                              DoorDash
-                            </a>
-                          )}
-                          {result.ubereatsUrl && (
-                            <a
-                              href={result.ubereatsUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="py-2 px-2 bg-[#06C167] rounded-lg text-center text-[13px] font-medium active:opacity-80 transition-opacity"
-                            >
-                              UberEats
-                            </a>
-                          )}
-                          {result.grubhubUrl && (
-                            <a
-                              href={result.grubhubUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="py-2 px-2 bg-[#F63440] rounded-lg text-center text-[13px] font-medium active:opacity-80 transition-opacity"
-                            >
-                              Grubhub
-                            </a>
-                          )}
-                        </div>
-                      </>
+                <p className="text-[15px] text-zinc-400 italic">{restaurant.reason}</p>
+
+                {diningMode === 'dine-in' && restaurant.address && (
+                  <p className="text-[13px] text-zinc-500">{restaurant.address}</p>
+                )}
+
+                {/* Action Buttons */}
+                {diningMode === 'dine-in' ? (
+                  <div className="flex items-center gap-2 pt-2">
+                    {restaurant.directionsUrl && (
+                      <a
+                        href={restaurant.directionsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 px-4 py-2 bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#0064CC] rounded-lg text-[15px] font-semibold transition-all text-center inline-flex items-center justify-center gap-1"
+                      >
+                        Directions
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                      </a>
+                    )}
+                    {restaurant.menuUrl && (
+                      <a
+                        href={restaurant.menuUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 border border-zinc-700 rounded-lg text-[15px] font-semibold transition-all text-center inline-flex items-center justify-center gap-1"
+                      >
+                        Menu
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                      </a>
                     )}
                   </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {restaurant.deliveryPlatforms?.map((platform) => (
+                      <a
+                        key={platform.name}
+                        href={platform.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 border border-zinc-700 rounded-lg text-[13px] font-semibold transition-all"
+                      >
+                        {platform.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Loading State */}
+            {loading && (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3 animate-pulse">
+                    <div className="h-5 bg-zinc-800 rounded w-3/4" />
+                    <div className="h-4 bg-zinc-800 rounded w-1/2" />
+                    <div className="h-4 bg-zinc-800 rounded w-1/4" />
+                    <div className="h-4 bg-zinc-800 rounded w-full" />
+                    <div className="h-10 bg-zinc-800 rounded" />
+                  </div>
                 ))}
+              </div>
+            )}
+
+            {/* No More Results */}
+            {!hasMore && restaurants.length > 0 && (
+              <p className="text-center text-zinc-500 text-[15px] py-4">That's all we found!</p>
+            )}
+
+            {/* Empty State */}
+            {!loading && restaurants.length === 0 && (
+              <div className="text-center py-16">
+                <p className="text-zinc-500 text-[17px]">No recommendations found</p>
+                <button
+                  onClick={handleBack}
+                  className="mt-4 text-[#007AFF] text-[15px] active:opacity-60 transition-opacity"
+                >
+                  Try different settings
+                </button>
               </div>
             )}
           </div>
@@ -505,6 +582,4 @@ export function FoodEngine({ identityId, onClose }: FoodEngineProps) {
       </div>
     </div>
   );
-
-  return createPortal(modal, document.body);
 }

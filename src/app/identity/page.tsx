@@ -690,6 +690,13 @@ export default function IdentityPage() {
       {showFoodEngine && selectedIdentity && (
         <FoodEngine
           identityId={selectedIdentity.id}
+          categories={categories}
+          influences={influences}
+          location={{
+            city: selectedIdentity.city,
+            state: selectedIdentity.state,
+            country: selectedIdentity.country,
+          }}
           onClose={() => setShowFoodEngine(false)}
         />
       )}
