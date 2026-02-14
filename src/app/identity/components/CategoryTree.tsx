@@ -46,6 +46,7 @@ function getCategoryIcon(type: string): string {
     thinkers: '💭', schools: '🏛️', themes: '💡',
     business: '💼', communication: '💬', entertainment: '🎬', intellectual: '📚',
     daily: '☀️', values: '⭐', parenting: '👶',
+    fashion: '👔', brands: '🏷️', aesthetic: '🎨', accessories: '💍',
   };
   return icons[type] || '📁';
 }

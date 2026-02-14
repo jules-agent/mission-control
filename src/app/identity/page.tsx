@@ -8,6 +8,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { IdentitySummary } from './components/IdentitySummary';
 import { AddInterestFlow } from './components/AddInterestFlow';
 import { LocationInput } from './components/LocationInput';
+import { PhysicalAttributes } from './components/PhysicalAttributes';
 import { BugReportButton } from '../components/BugReportButton';
 import { ZoomControl } from '../components/ZoomControl';
 
@@ -20,6 +21,7 @@ interface Identity {
   city?: string;
   state?: string;
   country?: string;
+  physical_attributes?: Record<string, any>;
 }
 
 interface Category {
@@ -118,6 +120,29 @@ export default function IdentityPage() {
     try {
       const { data, error } = await supabase.from('categories').select('*').eq('identity_id', identityId).order('level', { ascending: true });
       if (error) throw error;
+      
+      // Check if Fashion & Style category exists
+      const fashionExists = (data || []).some(c => c.name === 'Fashion & Style' && !c.parent_id);
+      if (!fashionExists) {
+        // Create Fashion & Style category with subcategories
+        const { data: fashionCat } = await supabase.from('categories')
+          .insert({ identity_id: identityId, name: 'Fashion & Style', type: 'fashion', level: 1 })
+          .select().single();
+        if (fashionCat) {
+          // Add subcategories
+          await supabase.from('categories').insert([
+            { identity_id: identityId, name: 'Brands', type: 'brands', level: 2, parent_id: fashionCat.id },
+            { identity_id: identityId, name: 'Aesthetic', type: 'aesthetic', level: 2, parent_id: fashionCat.id },
+            { identity_id: identityId, name: 'Accessories', type: 'accessories', level: 2, parent_id: fashionCat.id },
+          ]);
+          // Reload categories after creating Fashion & Style
+          const { data: reloadedData } = await supabase.from('categories').select('*').eq('identity_id', identityId).order('level', { ascending: true });
+          if (reloadedData) {
+            data.push(...reloadedData.filter(c => !data.some(existing => existing.id === c.id)));
+          }
+        }
+      }
+      
       const categoryMap = new Map<string, Category>();
       const rootCategories: Category[] = [];
       (data || []).forEach(cat => { categoryMap.set(cat.id, { ...cat, subcategories: [] }); });
@@ -439,6 +464,17 @@ export default function IdentityPage() {
     }
   }
 
+  async function updatePhysicalAttributes(identityId: string, physicalAttributes: Record<string, any>) {
+    const { error } = await supabase
+      .from('identities')
+      .update({ physical_attributes: physicalAttributes })
+      .eq('id', identityId);
+    if (!error && selectedIdentity) {
+      setIdentities(prev => prev.map(i => i.id === identityId ? { ...i, physical_attributes: physicalAttributes } : i));
+      setSelectedIdentity({ ...selectedIdentity, physical_attributes: physicalAttributes });
+    }
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut();
     window.location.href = '/identity/login';
@@ -553,6 +589,16 @@ export default function IdentityPage() {
                   state={selectedIdentity.state}
                   country={selectedIdentity.country}
                   onSave={(city, state, country) => updateLocation(selectedIdentity.id, city, state, country)}
+                />
+              </div>
+            )}
+
+            {selectedIdentity && (
+              <div className="mb-4">
+                <PhysicalAttributes
+                  identityId={selectedIdentity.id}
+                  physicalAttributes={selectedIdentity.physical_attributes}
+                  onSave={updatePhysicalAttributes}
                 />
               </div>
             )}
