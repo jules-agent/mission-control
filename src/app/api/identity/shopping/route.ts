@@ -156,17 +156,17 @@ export async function POST(request: NextRequest) {
 
     // Category-specific instructions
     const categoryInstructions: Record<string, string> = {
-      books: 'Recommend books based on their intellectual interests and entertainment preferences. Include both fiction and non-fiction.',
-      fashion: 'Recommend clothing items that match their style and physical attributes. Include sizing guidance when relevant.',
-      music: 'Recommend vinyl records, band merchandise, instruments, or music gear based on their music tastes.',
-      gaming: 'Recommend video games, consoles, gaming accessories, or tech gadgets.',
-      home: 'Recommend home decor, furniture, or living space items.',
-      kitchen: 'Recommend cooking equipment, utensils, or food-related items based on their food preferences.',
-      fitness: 'Recommend fitness equipment, workout gear, or health/wellness products.',
-      art: 'Recommend art supplies, creative tools, or hobby-related items.',
-      kids: 'Recommend toys, educational items, or products suitable for children.',
-      automotive: 'Recommend car accessories, tools, or automotive-related products.',
-      gifts: 'Recommend gift ideas that would be perfect FOR this person based on their complete profile.',
+      books: 'Recommend ONLY books (paperback, hardcover, ebook). No other product types. Base recommendations on their intellectual interests and entertainment preferences.',
+      fashion: 'Recommend ONLY clothing, shoes, and fashion accessories. No other product types. Match their style and physical attributes. Include sizing guidance.',
+      music: 'Recommend ONLY music-related items: vinyl records, band merch/t-shirts, instruments, audio gear, turntables. No other product types.',
+      gaming: 'Recommend ONLY gaming and electronics: video games, consoles, gaming accessories, tech gadgets, headsets. No other product types.',
+      home: 'Recommend ONLY home decor, furniture, lighting, or living space items. No other product types.',
+      kitchen: 'Recommend ONLY kitchen and cooking items: cookware, utensils, appliances, spices, specialty ingredients, cutting boards, knife sets. No shoes, no clothing, no non-kitchen items.',
+      fitness: 'Recommend ONLY fitness and wellness items: workout equipment, gym gear, supplements, yoga mats, resistance bands. No other product types.',
+      art: 'Recommend ONLY art supplies, creative tools, craft kits, or hobby-related items. No other product types.',
+      kids: 'Recommend ONLY kids products: toys, educational items, games, children\'s books. No other product types.',
+      automotive: 'Recommend ONLY automotive items: car accessories, tools, detailing products, car parts. No other product types.',
+      gifts: 'Recommend gift ideas that would be perfect FOR this person based on their complete profile. Can be any product type.',
       surprise: 'Recommend surprising and delightful items from ANY category based on their profile.',
     };
 
@@ -178,7 +178,9 @@ export async function POST(request: NextRequest) {
       ? `This is page ${pageNum} of results. Generate DIFFERENT products than previous pages - be creative and diverse!`
       : 'This is the first page of results.';
 
-    const prompt = `You are a personal shopping assistant. ${instruction}
+    const prompt = `You are a personal shopping assistant. CRITICAL: ONLY recommend products that match the specified category. NEVER include products from other categories.
+
+${instruction}
 
 Budget range: $${budgetMin} - $${budgetMax}
 
