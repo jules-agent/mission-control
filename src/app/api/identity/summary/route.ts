@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -13,7 +14,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
     }
 
-    const supabase = await createClient();
+    // Verify user is authenticated
+    const authClient = await createClient();
+    const { data: { user } } = await authClient.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // Use service role for data access (bypasses RLS)
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Fetch identity
     const { data: identity } = await supabase
@@ -24,6 +36,11 @@ export async function POST(request: Request) {
 
     if (!identity) {
       return NextResponse.json({ error: 'Identity not found' }, { status: 404 });
+    }
+
+    // Security: verify identity belongs to authenticated user
+    if (identity.user_id !== user.id) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
     // Fetch all categories + influences
