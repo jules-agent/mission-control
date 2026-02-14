@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { CategoryTree } from './components/CategoryTree';
 import { IdentitySwitcher } from './components/IdentitySwitcher';
 import { OnboardingModal } from './components/OnboardingModal';
+import { IdentitySummary } from './components/IdentitySummary';
 import { BugReportButton } from '../components/BugReportButton';
 
 interface Identity {
@@ -406,6 +407,14 @@ export default function IdentityPage() {
               onDuplicateIdentity={duplicateIdentity}
               onStartOnboarding={() => setShowOnboarding(true)}
             />
+
+            {selectedIdentity && (
+              <IdentitySummary
+                identityId={selectedIdentity.id}
+                identityName={selectedIdentity.name}
+                influenceCount={Object.values(influences).flat().length}
+              />
+            )}
 
             {selectedIdentity && (
               <CategoryTree
