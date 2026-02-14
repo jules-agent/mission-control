@@ -59,6 +59,7 @@ export default function IdentityPage() {
   const [viewingAsUser, setViewingAsUser] = useState<{ email: string; id: string } | null>(null);
   const [showShopping, setShowShopping] = useState(false);
   const [showFoodEngine, setShowFoodEngine] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const selectedIdRef = useRef<string | null>(null);
 
   const supabase = createClient();
@@ -585,16 +586,29 @@ export default function IdentityPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <IdentitySwitcher
-              identities={identities}
-              selectedIdentity={selectedIdentity}
-              onSelectIdentity={handleSelectIdentity}
-              onCreateIdentity={(name) => createIdentity(name)}
-              onRenameIdentity={renameIdentity}
-              onDeleteIdentity={deleteIdentity}
-              onDuplicateIdentity={duplicateIdentity}
-              onStartOnboarding={() => setShowOnboarding(true)}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <IdentitySwitcher
+                  identities={identities}
+                  selectedIdentity={selectedIdentity}
+                  onSelectIdentity={handleSelectIdentity}
+                  onCreateIdentity={(name) => createIdentity(name)}
+                  onRenameIdentity={renameIdentity}
+                  onDeleteIdentity={deleteIdentity}
+                  onDuplicateIdentity={duplicateIdentity}
+                  onStartOnboarding={() => setShowOnboarding(true)}
+                />
+              </div>
+              {selectedIdentity && (
+                <button
+                  onClick={() => setShowProfileEdit(true)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-900/60 hover:bg-zinc-800 active:bg-zinc-700 transition-all text-zinc-400 hover:text-white"
+                  title="Edit Profile"
+                >
+                  ✏️
+                </button>
+              )}
+            </div>
 
             {selectedIdentity && (
               <IdentitySummary
@@ -604,26 +618,9 @@ export default function IdentityPage() {
               />
             )}
 
-            {selectedIdentity && (
-              <div className="mb-4 pl-1">
-                <LocationInput
-                  city={selectedIdentity.city}
-                  state={selectedIdentity.state}
-                  country={selectedIdentity.country}
-                  onSave={(city, state, country) => updateLocation(selectedIdentity.id, city, state, country)}
-                />
-              </div>
-            )}
+            {/* Location + Physical Attributes moved into profile edit sheet (✏️ icon) */}
 
-            {selectedIdentity && (
-              <div className="mb-4">
-                <PhysicalAttributes
-                  identityId={selectedIdentity.id}
-                  physicalAttributes={selectedIdentity.physical_attributes}
-                  onSave={updatePhysicalAttributes}
-                />
-              </div>
-            )}
+            {/* Physical Attributes moved into profile edit sheet */}
 
             {selectedIdentity && (
               <CategoryTree
@@ -700,6 +697,39 @@ export default function IdentityPage() {
           onAddInfluence={(categoryId, influence) => addInterestToCategory(categoryId, influence)}
           onClose={() => setShowFoodEngine(false)}
         />
+      )}
+
+      {/* Profile Edit Sheet */}
+      {showProfileEdit && selectedIdentity && (
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center" onClick={() => setShowProfileEdit(false)}>
+          <div
+            className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-zinc-800/60 flex items-center justify-between sticky top-0 bg-zinc-900 z-10">
+              <h2 className="text-[17px] font-semibold text-white">Edit Profile</h2>
+              <button onClick={() => setShowProfileEdit(false)} className="text-zinc-500 hover:text-zinc-300 text-[15px] p-1">Done</button>
+            </div>
+            <div className="p-5 space-y-6">
+              {/* Location */}
+              <div>
+                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-2">📍 Location</label>
+                <LocationInput
+                  city={selectedIdentity.city}
+                  state={selectedIdentity.state}
+                  country={selectedIdentity.country}
+                  onSave={(city, state, country) => updateLocation(selectedIdentity.id, city, state, country)}
+                />
+              </div>
+              {/* Physical Attributes */}
+              <PhysicalAttributes
+                identityId={selectedIdentity.id}
+                physicalAttributes={selectedIdentity.physical_attributes}
+                onSave={updatePhysicalAttributes}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
