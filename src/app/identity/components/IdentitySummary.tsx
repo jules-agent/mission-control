@@ -16,9 +16,15 @@ export function IdentitySummary({ identityId, identityName, influenceCount }: Id
   const cacheKey = `identity-summary-${identityId}`;
   const countKey = `identity-summary-count-${identityId}`;
 
+  // Reset on identity switch
   useEffect(() => {
     setSummary(null);
     setExpanded(false);
+  }, [identityId]);
+
+  // Load/generate when identity or influence count changes
+  useEffect(() => {
+    if (influenceCount === 0) return;
     const cached = localStorage.getItem(cacheKey);
     const cachedCount = localStorage.getItem(countKey);
     
@@ -28,10 +34,10 @@ export function IdentitySummary({ identityId, identityName, influenceCount }: Id
       if (Math.abs(influenceCount - prevCount) >= 3) {
         generateSummary();
       }
-    } else if (influenceCount > 0) {
+    } else {
       generateSummary();
     }
-  }, [identityId]);
+  }, [identityId, influenceCount]);
 
   const generateSummary = useCallback(async () => {
     if (loading) return;
