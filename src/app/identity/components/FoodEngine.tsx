@@ -121,9 +121,25 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
   const [hasMore, setHasMore] = useState(true);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [thumbsDownItem, setThumbsDownItem] = useState<string | null>(null);
+  const [thumbsUpItem, setThumbsUpItem] = useState<Restaurant | null>(null);
+  const [savedRestaurants, setSavedRestaurants] = useState<Record<string, Restaurant[]>>(() => {
+    try { return JSON.parse(localStorage.getItem('food-saved') || '{}'); } catch { return {}; }
+  });
   const [blockedItems, setBlockedItems] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('food-blocked') || '[]'); } catch { return []; }
   });
+
+  function saveRestaurantForLater(restaurant: Restaurant) {
+    const cat = selectedCategory || 'general';
+    const updated = { ...savedRestaurants };
+    if (!updated[cat]) updated[cat] = [];
+    if (!updated[cat].find(r => r.name === restaurant.name)) {
+      updated[cat].push(restaurant);
+      setSavedRestaurants(updated);
+      localStorage.setItem('food-saved', JSON.stringify(updated));
+    }
+    setThumbsUpItem(null);
+  }
 
   function blockItem(name: string) {
     const updated = [...blockedItems, name];
@@ -527,13 +543,26 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
 
                 <div className="flex items-center justify-between">
                   <p className="text-[15px] text-zinc-400 italic flex-1">{restaurant.reason}</p>
-                  <button
-                    onClick={() => setThumbsDownItem(restaurant.name)}
-                    className="ml-2 w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg bg-zinc-800 border border-red-900/30 text-red-400 hover:bg-red-900/20 active:opacity-60 transition-all text-[14px]"
-                    title="Never show again"
-                  >
-                    👎
-                  </button>
+                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    <button
+                      onClick={() => setThumbsUpItem(restaurant)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all text-[14px] ${
+                        savedRestaurants[selectedCategory || '']?.find(r => r.name === restaurant.name)
+                          ? 'bg-green-900/30 border-green-700/50 text-green-400'
+                          : 'bg-zinc-800 border-green-900/30 text-green-400 hover:bg-green-900/20 active:opacity-60'
+                      }`}
+                      title="Save for later"
+                    >
+                      👍
+                    </button>
+                    <button
+                      onClick={() => setThumbsDownItem(restaurant.name)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-red-900/30 text-red-400 hover:bg-red-900/20 active:opacity-60 transition-all text-[14px]"
+                      title="Never show again"
+                    >
+                      👎
+                    </button>
+                  </div>
                 </div>
 
                 {diningMode === 'dine-in' && restaurant.address && (
@@ -623,6 +652,36 @@ export function FoodEngine({ identityId, categories, influences, location, onAdd
           </div>
         )}
       </div>
+
+      {/* Thumbs Up - Save for Later */}
+      {thumbsUpItem && (
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center" onClick={() => setThumbsUpItem(null)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-zinc-800/60">
+              <h3 className="text-[17px] font-semibold text-white">👍 Save for later?</h3>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-[15px] text-zinc-400">
+                Save <span className="text-white font-medium">{thumbsUpItem.name}</span> to your restaurant list?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setThumbsUpItem(null)}
+                  className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80 transition-all"
+                >
+                  No thanks
+                </button>
+                <button
+                  onClick={() => saveRestaurantForLater(thumbsUpItem)}
+                  className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-[#34C759] text-white active:opacity-80 transition-all"
+                >
+                  ❤️ Save it
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Thumbs Down Flow */}
       {thumbsDownItem && (

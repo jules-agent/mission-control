@@ -77,9 +77,28 @@ export function ShoppingEngine({ identityId, categories: identityCategories, inf
   const [hasMore, setHasMore] = useState(true);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [thumbsDownItem, setThumbsDownItem] = useState<string | null>(null);
+  const [thumbsUpItem, setThumbsUpItem] = useState<Product | null>(null);
+  const [savedItems, setSavedItems] = useState<Record<string, Product[]>>(() => {
+    try { return JSON.parse(localStorage.getItem('shopping-saved') || '{}'); } catch { return {}; }
+  });
+  const [showSaved, setShowSaved] = useState(false);
   const [blockedItems, setBlockedItems] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('shopping-blocked') || '[]'); } catch { return []; }
   });
+
+  function saveForLater(product: Product) {
+    const cat = selectedCategory || 'general';
+    const updated = { ...savedItems };
+    if (!updated[cat]) updated[cat] = [];
+    if (!updated[cat].find(p => p.name === product.name)) {
+      updated[cat].push(product);
+      setSavedItems(updated);
+      localStorage.setItem('shopping-saved', JSON.stringify(updated));
+    }
+    setThumbsUpItem(null);
+  }
+
+  const totalSaved = Object.values(savedItems).reduce((sum, items) => sum + items.length, 0);
 
   function blockItem(name: string) {
     const updated = [...blockedItems, name];
@@ -310,10 +329,60 @@ export function ShoppingEngine({ identityId, categories: identityCategories, inf
               <h3 className="text-[22px] font-semibold mb-1">
                 {CATEGORIES.find(c => c.id === selectedCategory)?.name}
               </h3>
-              <p className="text-[15px] text-zinc-500">
-                ${budgetMin} - ${budgetMax}
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[15px] text-zinc-500">
+                  ${budgetMin} - ${budgetMax}
+                </p>
+                {totalSaved > 0 && (
+                  <button
+                    onClick={() => setShowSaved(!showSaved)}
+                    className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
+                      showSaved ? 'bg-[#007AFF] text-white' : 'bg-zinc-800 border border-zinc-700 text-zinc-400'
+                    }`}
+                  >
+                    ❤️ Saved ({totalSaved})
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Saved Items View */}
+            {showSaved && (
+              <div className="space-y-3 mb-4">
+                {Object.entries(savedItems).map(([cat, items]) => (
+                  items.length > 0 && (
+                    <div key={cat}>
+                      <p className="text-[13px] text-zinc-500 font-medium uppercase tracking-wider mb-2">
+                        {CATEGORIES.find(c => c.id === cat)?.name || cat}
+                      </p>
+                      {items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-xl mb-2">
+                          <div className="flex-1 min-w-0 mr-3">
+                            <p className="text-[15px] font-medium text-white truncate">{item.name}</p>
+                            <p className="text-[13px] text-[#34C759]">{item.price}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#007AFF] active:opacity-60">View</a>
+                            <button
+                              onClick={() => {
+                                const updated = { ...savedItems };
+                                updated[cat] = updated[cat].filter(p => p.name !== item.name);
+                                if (updated[cat].length === 0) delete updated[cat];
+                                setSavedItems(updated);
+                                localStorage.setItem('shopping-saved', JSON.stringify(updated));
+                              }}
+                              className="text-[13px] text-red-400 active:opacity-60"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
 
             {/* Product Cards */}
             {products.map((product, index) => (
@@ -333,6 +402,17 @@ export function ShoppingEngine({ identityId, categories: identityCategories, inf
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2">
                     <p className="text-[13px] text-zinc-500">{product.store}</p>
+                    <button
+                      onClick={() => setThumbsUpItem(product)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all text-[14px] ${
+                        savedItems[selectedCategory || '']?.find(p => p.name === product.name)
+                          ? 'bg-green-900/30 border-green-700/50 text-green-400'
+                          : 'bg-zinc-800 border-green-900/30 text-green-400 hover:bg-green-900/20 active:opacity-60'
+                      }`}
+                      title="Save for later"
+                    >
+                      👍
+                    </button>
                     <button
                       onClick={() => setThumbsDownItem(product.name)}
                       className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-red-900/30 text-red-400 hover:bg-red-900/20 active:opacity-60 transition-all text-[14px]"
@@ -395,6 +475,36 @@ export function ShoppingEngine({ identityId, categories: identityCategories, inf
           </div>
         )}
       </div>
+
+      {/* Thumbs Up - Save for Later */}
+      {thumbsUpItem && (
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-end sm:items-center justify-center" onClick={() => setThumbsUpItem(null)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-zinc-800/60">
+              <h3 className="text-[17px] font-semibold text-white">👍 Save for later?</h3>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-[15px] text-zinc-400">
+                Save <span className="text-white font-medium">{thumbsUpItem.name}</span> ({thumbsUpItem.price}) to your wishlist?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setThumbsUpItem(null)}
+                  className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80 transition-all"
+                >
+                  No thanks
+                </button>
+                <button
+                  onClick={() => saveForLater(thumbsUpItem)}
+                  className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-[#34C759] text-white active:opacity-80 transition-all"
+                >
+                  ❤️ Save it
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Thumbs Down Flow */}
       {thumbsDownItem && (
