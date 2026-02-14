@@ -32,11 +32,9 @@ interface CategoryTreeProps {
 }
 
 function getAlignmentDotColor(alignment: number): string {
-  if (alignment >= 75) return '#34C759';
-  if (alignment >= 60) return '#6FDA75';
-  if (alignment >= 50) return '#A4E897';
-  if (alignment >= 45) return '#FFD60A';
-  if (alignment >= 25) return '#FF9500';
+  if (alignment >= 60) return '#34C759';
+  if (alignment >= 40) return '#FFD60A';
+  if (alignment >= 20) return '#FF9500';
   return '#FF3B30';
 }
 
@@ -47,6 +45,21 @@ function getCategoryIcon(type: string): string {
     thinkers: '💭', schools: '🏛️', themes: '💡'
   };
   return icons[type] || '📁';
+}
+
+/** Recursively collect ALL influences from a category and all descendants */
+function getAllInfluencesForCategory(category: Category, influences: Record<string, Influence[]>): Influence[] {
+  let all: Influence[] = [];
+  // Add direct influences with category_id preserved
+  const direct = (influences[category.id] || []).map(inf => ({ ...inf, category_id: category.id }));
+  all = all.concat(direct);
+  // Recurse into subcategories
+  if (category.subcategories) {
+    for (const sub of category.subcategories) {
+      all = all.concat(getAllInfluencesForCategory(sub, influences));
+    }
+  }
+  return all;
 }
 
 export function CategoryTree({
@@ -70,16 +83,16 @@ export function CategoryTree({
     return total;
   }
 
-  function renderInfluencePreviewDots(categoryInfluences: Influence[]) {
-    if (categoryInfluences.length === 0) return null;
-    const sorted = [...categoryInfluences].sort((a, b) => b.alignment - a.alignment);
-    const top3 = sorted.slice(0, 3);
+  function renderInfluencePreviewDots(allInfs: Influence[]) {
+    if (allInfs.length === 0) return null;
+    const sorted = [...allInfs].sort((a, b) => b.alignment - a.alignment);
+    const top5 = sorted.slice(0, 5);
     return (
-      <div className="flex items-center gap-1">
-        {top3.map(inf => (
+      <div className="flex items-center gap-0.5">
+        {top5.map((inf, i) => (
           <span
-            key={inf.id}
-            className="w-[6px] h-[6px] rounded-full"
+            key={inf.id + '-' + i}
+            className="w-[5px] h-[5px] rounded-full"
             style={{ backgroundColor: getAlignmentDotColor(inf.alignment) }}
           />
         ))}
@@ -89,10 +102,18 @@ export function CategoryTree({
 
   function renderCategory(category: Category, index: number, total: number, depth: number = 0) {
     const isExpanded = expandedCategories.has(category.id);
-    const categoryInfluences = influences[category.id] || [];
     const hasSubcategories = category.subcategories && category.subcategories.length > 0;
     const influenceCount = countAllInfluences(category);
     const isLast = index === total - 1;
+
+    // Bubble-up: aggregate ALL influences from this category + all descendants
+    const aggregatedInfluences = getAllInfluencesForCategory(category, influences);
+    const hasChildren = hasSubcategories;
+    // For leaf categories, use direct influences for editing
+    const directInfluences = influences[category.id] || [];
+    // Determine if we show aggregated (parent) or direct (leaf)
+    const isLeaf = !hasSubcategories;
+    const displayInfluences = isLeaf ? directInfluences : aggregatedInfluences;
 
     return (
       <div key={category.id}>
@@ -111,10 +132,13 @@ export function CategoryTree({
               <p className="text-[17px] font-semibold text-white truncate">{category.name}</p>
               <p className="text-[13px] text-zinc-500">
                 {influenceCount} influence{influenceCount !== 1 ? 's' : ''}
+                {hasChildren && !isLeaf && (
+                  <span className="text-zinc-600"> (aggregated)</span>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {!isExpanded && renderInfluencePreviewDots(categoryInfluences)}
+              {!isExpanded && renderInfluencePreviewDots(aggregatedInfluences)}
               <svg
                 className={`w-[14px] h-[14px] text-zinc-500 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
@@ -129,17 +153,44 @@ export function CategoryTree({
         <div
           className="overflow-hidden transition-all duration-300 ease-out"
           style={{
-            maxHeight: isExpanded ? '5000px' : '0px',
+            maxHeight: isExpanded ? '10000px' : '0px',
             opacity: isExpanded ? 1 : 0,
           }}
         >
           <div className="pl-4 pr-0">
-            {/* Influences */}
-            <InfluenceEditor
-              influences={categoryInfluences}
-              onUpdate={(updated) => onUpdateInfluences(category.id, updated)}
-              categoryType={category.type}
-            />
+            {/* Influences — for parent categories, show aggregated read-only style; for leaf, show editable */}
+            {isLeaf ? (
+              <InfluenceEditor
+                influences={directInfluences}
+                onUpdate={(updated) => onUpdateInfluences(category.id, updated)}
+                categoryType={category.type}
+                categoryId={category.id}
+                categoryName={category.name}
+              />
+            ) : (
+              <InfluenceEditor
+                influences={aggregatedInfluences}
+                onUpdate={(updated) => {
+                  // For aggregated view: group updates by category_id and save each
+                  const byCat: Record<string, Influence[]> = {};
+                  updated.forEach(inf => {
+                    const catId = inf.category_id || category.id;
+                    if (!byCat[catId]) byCat[catId] = [];
+                    byCat[catId].push(inf);
+                  });
+                  // Re-index positions per category
+                  Object.entries(byCat).forEach(([catId, infs]) => {
+                    const reindexed = infs.map((inf, i) => ({ ...inf, position: i }));
+                    onUpdateInfluences(catId, reindexed);
+                  });
+                }}
+                categoryType={category.type}
+                categoryId={category.id}
+                categoryName={category.name}
+                allInfluences={influences}
+                isAggregated={true}
+              />
+            )}
 
             {/* Subcategories */}
             {hasSubcategories && (
@@ -149,7 +200,7 @@ export function CategoryTree({
                 </p>
                 <div className="bg-zinc-900/60 rounded-xl overflow-hidden ml-0">
                   {category.subcategories!.map((sub, i) =>
-                    renderCategory(sub, i, category.subcategories!.length, 1)
+                    renderCategory(sub, i, category.subcategories!.length, depth + 1)
                   )}
                 </div>
               </div>
