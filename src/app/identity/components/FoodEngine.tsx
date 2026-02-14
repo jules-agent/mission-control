@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { ThumbsDownFlow } from './ThumbsDownFlow';
 
 interface FoodEngineProps {
   identityId: string;
@@ -101,7 +102,7 @@ const TIME_PRESETS = [5, 10, 15, 20, 30, 45, 60];
 
 type DiningMode = 'dine-in' | 'delivery';
 
-export function FoodEngine({ identityId, categories, influences, location, onClose }: FoodEngineProps) {
+export function FoodEngine({ identityId, categories, influences, location, onAddInfluence, onClose }: FoodEngineProps) {
   const [step, setStep] = useState<'budget' | 'category' | 'location' | 'mode' | 'time' | 'results'>('budget');
   const [budgetMin, setBudgetMin] = useState(15);
   const [budgetMax, setBudgetMax] = useState(30);
@@ -118,6 +119,29 @@ export function FoodEngine({ identityId, categories, influences, location, onClo
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const [thumbsDownItem, setThumbsDownItem] = useState<string | null>(null);
+  const [blockedItems, setBlockedItems] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('food-blocked') || '[]'); } catch { return []; }
+  });
+
+  function blockItem(name: string) {
+    const updated = [...blockedItems, name];
+    setBlockedItems(updated);
+    localStorage.setItem('food-blocked', JSON.stringify(updated));
+    setRestaurants(prev => prev.filter(r => r.name !== name));
+    setThumbsDownItem(null);
+  }
+
+  function flattenCats(cats: Category[], depth = 0): { id: string; name: string; depth: number }[] {
+    const result: { id: string; name: string; depth: number }[] = [];
+    for (const cat of (cats || [])) {
+      result.push({ id: cat.id, name: cat.name, depth });
+      if (cat.subcategories) result.push(...flattenCats(cat.subcategories, depth + 1));
+    }
+    return result;
+  }
+
+  const flatCats = flattenCats(categories || []);
 
   // Infinite scroll handler
   useEffect(() => {
@@ -491,7 +515,16 @@ export function FoodEngine({ identityId, categories, influences, location, onClo
                   </span>
                 </div>
 
-                <p className="text-[15px] text-zinc-400 italic">{restaurant.reason}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[15px] text-zinc-400 italic flex-1">{restaurant.reason}</p>
+                  <button
+                    onClick={() => setThumbsDownItem(restaurant.name)}
+                    className="ml-2 w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg bg-zinc-800 border border-red-900/30 text-red-400 hover:bg-red-900/20 active:opacity-60 transition-all text-[14px]"
+                    title="Never show again"
+                  >
+                    👎
+                  </button>
+                </div>
 
                 {diningMode === 'dine-in' && restaurant.address && (
                   <p className="text-[13px] text-zinc-500">{restaurant.address}</p>
@@ -580,6 +613,29 @@ export function FoodEngine({ identityId, categories, influences, location, onClo
           </div>
         )}
       </div>
+
+      {/* Thumbs Down Flow */}
+      {thumbsDownItem && (
+        <ThumbsDownFlow
+          itemName={thumbsDownItem}
+          engineType="food"
+          categories={flatCats}
+          onDismiss={() => {
+            blockItem(thumbsDownItem);
+          }}
+          onAddToIdentity={(reason, categoryId) => {
+            blockItem(thumbsDownItem);
+            if (categoryId && onAddInfluence) {
+              const existingCount = influences?.[categoryId]?.length || 0;
+              onAddInfluence(categoryId, {
+                name: reason,
+                alignment: 0,
+                position: existingCount,
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

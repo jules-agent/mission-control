@@ -697,6 +697,7 @@ export default function IdentityPage() {
             state: selectedIdentity.state,
             country: selectedIdentity.country,
           }}
+          onAddInfluence={(categoryId, influence) => addInterestToCategory(categoryId, influence)}
           onClose={() => setShowFoodEngine(false)}
         />
       )}
