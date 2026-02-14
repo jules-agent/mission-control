@@ -19,8 +19,12 @@ interface OnboardingModalProps {
 }
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Prefer not to say'];
-const VALUE_OPTIONS = ['Family', 'Career', 'Creativity', 'Adventure', 'Knowledge', 'Health', 'Community', 'Freedom', 'Spirituality', 'Wealth'];
-const FOOD_OPTIONS = ['Italian', 'Japanese', 'Mexican', 'Indian', 'Korean', 'BBQ', 'Seafood', 'Vegan', 'Mediterranean', 'American', 'Thai', 'Chinese', 'French'];
+// Age-appropriate options
+const ADULT_VALUE_OPTIONS = ['Family', 'Career', 'Creativity', 'Adventure', 'Knowledge', 'Health', 'Community', 'Freedom', 'Spirituality', 'Wealth'];
+const KID_VALUE_OPTIONS = ['Family', 'Friendship', 'Creativity', 'Adventure', 'Learning', 'Sports', 'Animals', 'Fun', 'Helping Others', 'Nature'];
+
+const ADULT_FOOD_OPTIONS = ['Italian', 'Japanese', 'Mexican', 'Indian', 'Korean', 'BBQ', 'Seafood', 'Vegan', 'Mediterranean', 'American', 'Thai', 'Chinese', 'French'];
+const KID_FOOD_OPTIONS = ['Pizza', 'Pasta', 'Tacos', 'Burgers', 'Chicken Nuggets', 'Mac & Cheese', 'Ice Cream', 'Sushi', 'Pancakes', 'Fruit', 'Sandwiches', 'Hot Dogs'];
 
 export function OnboardingModal({ onComplete, onCancel }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
@@ -37,6 +41,29 @@ export function OnboardingModal({ onComplete, onCancel }: OnboardingModalProps) 
   });
 
   const totalSteps = 3;
+
+  // Determine if this is a kid profile (under 13)
+  const getAge = (): number | null => {
+    const val = data.ageRange;
+    if (!val) return null;
+    // If it's a date (birthday), calculate age
+    if (val.includes('-') && val.length === 10) {
+      const birth = new Date(val);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+      return age;
+    }
+    // Otherwise it's a numeric age
+    const num = parseInt(val);
+    return isNaN(num) ? null : num;
+  };
+  const age = getAge();
+  const isKid = age !== null && age < 13;
+  const isTeen = age !== null && age >= 13 && age < 18;
+  const VALUE_OPTIONS = isKid ? KID_VALUE_OPTIONS : ADULT_VALUE_OPTIONS;
+  const FOOD_OPTIONS = isKid ? KID_FOOD_OPTIONS : ADULT_FOOD_OPTIONS;
 
   const toggleArrayItem = (field: 'values' | 'food', item: string) => {
     setData(prev => ({
@@ -181,7 +208,7 @@ export function OnboardingModal({ onComplete, onCancel }: OnboardingModalProps) 
                   type="text"
                   value={data.music}
                   onChange={e => setData(d => ({ ...d, music: e.target.value }))}
-                  placeholder="e.g. Radiohead, Kendrick Lamar, Miles Davis"
+                  placeholder={isKid ? "e.g. Taylor Swift, Imagine Dragons, Disney songs" : "e.g. Radiohead, Kendrick Lamar, Miles Davis"}
                   className="w-full py-3 px-4 bg-zinc-800 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
                 />
               </div>
@@ -215,7 +242,7 @@ export function OnboardingModal({ onComplete, onCancel }: OnboardingModalProps) 
                   type="text"
                   value={data.entertainment}
                   onChange={e => setData(d => ({ ...d, entertainment: e.target.value }))}
-                  placeholder="e.g. The Matrix, Breaking Bad, Inception"
+                  placeholder={isKid ? "e.g. Frozen, Minecraft, Bluey" : isTeen ? "e.g. Stranger Things, Spider-Verse, The Hunger Games" : "e.g. The Matrix, Breaking Bad, Inception"}
                   className="w-full py-3 px-4 bg-zinc-800 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
                 />
               </div>
@@ -243,13 +270,13 @@ export function OnboardingModal({ onComplete, onCancel }: OnboardingModalProps) 
 
               {/* Intellectual Interests */}
               <div>
-                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-1">🧠 Intellectual Interests</label>
-                <p className="text-[13px] text-zinc-600 mb-2">Who inspires you? (authors, thinkers, leaders)</p>
+                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-1">{isKid ? '⭐ Heroes & Role Models' : '🧠 Intellectual Interests'}</label>
+                <p className="text-[13px] text-zinc-600 mb-2">{isKid ? 'Who do you look up to? (characters, athletes, family)' : 'Who inspires you? (authors, thinkers, leaders)'}</p>
                 <input
                   type="text"
                   value={data.intellectualInterests}
                   onChange={e => setData(d => ({ ...d, intellectualInterests: e.target.value }))}
-                  placeholder="e.g. Carl Sagan, Naval Ravikant, bell hooks"
+                  placeholder={isKid ? "e.g. Spider-Man, LeBron James, my dad" : "e.g. Carl Sagan, Naval Ravikant, Marcus Aurelius"}
                   className="w-full py-3 px-4 bg-zinc-800 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
                 />
               </div>
