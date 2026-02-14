@@ -18,8 +18,7 @@ interface OnboardingModalProps {
   onCancel: () => void;
 }
 
-const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
-const AGE_OPTIONS = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+const GENDER_OPTIONS = ['Male', 'Female', 'Prefer not to say'];
 const VALUE_OPTIONS = ['Family', 'Career', 'Creativity', 'Adventure', 'Knowledge', 'Health', 'Community', 'Freedom', 'Spirituality', 'Wealth'];
 const FOOD_OPTIONS = ['Italian', 'Japanese', 'Mexican', 'Indian', 'Korean', 'BBQ', 'Seafood', 'Vegan', 'Mediterranean', 'American', 'Thai', 'Chinese', 'French'];
 
@@ -142,22 +141,26 @@ export function OnboardingModal({ onComplete, onCancel }: OnboardingModalProps) 
               </div>
 
               <div>
-                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-2">Age Range</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {AGE_OPTIONS.map(a => (
-                    <button
-                      key={a}
-                      onClick={() => setData(d => ({ ...d, ageRange: d.ageRange === a ? '' : a }))}
-                      className={`py-3 px-4 rounded-xl text-[15px] font-medium transition-all touch-manipulation ${
-                        data.ageRange === a
-                          ? 'bg-[#007AFF] text-white'
-                          : 'bg-zinc-800 text-zinc-300 active:bg-zinc-700'
-                      }`}
-                    >
-                      {a}
-                    </button>
-                  ))}
+                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-2">Age</label>
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={data.ageRange && !data.ageRange.includes('-') ? data.ageRange : ''}
+                    onChange={e => setData(d => ({ ...d, ageRange: e.target.value }))}
+                    placeholder="Age"
+                    className="w-24 py-3 px-4 bg-zinc-800 rounded-xl text-[17px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
+                  />
+                  <span className="text-zinc-600 text-[15px]">or</span>
+                  <input
+                    type="date"
+                    value={data.ageRange && data.ageRange.includes('-') && data.ageRange.length === 10 ? data.ageRange : ''}
+                    onChange={e => setData(d => ({ ...d, ageRange: e.target.value }))}
+                    className="flex-1 py-3 px-4 bg-zinc-800 rounded-xl text-[15px] text-white focus:outline-none focus:ring-2 focus:ring-[#007AFF] [color-scheme:dark]"
+                  />
                 </div>
+                <p className="text-[12px] text-zinc-600 mt-1">Enter age in years or select birthday</p>
               </div>
             </div>
           )}
