@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { titleCase } from '@/lib/titleCase';
 
 interface ThumbsDownFlowProps {
   itemName: string;
@@ -52,7 +53,7 @@ export function ThumbsDownFlow({ itemName, engineType, onDismiss, onAddToIdentit
                 </label>
                 <textarea
                   value={reason}
-                  onChange={e => setReason(e.target.value)}
+                  onChange={e => setReason(titleCase(e.target.value))}
                   placeholder="e.g. Don't like this brand, too expensive, not my style..."
                   className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF] resize-none"
                   rows={3}

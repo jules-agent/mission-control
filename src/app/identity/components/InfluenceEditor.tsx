@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { titleCase } from '@/lib/titleCase';
 
 interface Influence {
   id: string;
@@ -123,7 +124,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     const tags = newMoodTags.trim() ? newMoodTags.split(',').map(t => t.trim()).filter(Boolean) : [];
     const newInfluence: Influence = {
       id: crypto.randomUUID(),
-      name: newName.trim(),
+      name: titleCase(newName.trim()),
       alignment: Math.max(0, Math.min(100, parseInt(newAlignment) || 50)),
       position: items.length,
       mood_tags: tags,
@@ -316,7 +317,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
           <input
             type="text"
             value={newName}
-            onChange={e => setNewName(e.target.value)}
+            onChange={e => setNewName(titleCase(e.target.value))}
             placeholder="Influence name"
             className="w-full py-2 px-3 bg-zinc-800 rounded-lg text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#007AFF]"
             autoFocus

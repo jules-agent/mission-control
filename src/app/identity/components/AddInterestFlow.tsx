@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { titleCase } from '@/lib/titleCase';
 
 interface Category {
   id: string;
@@ -107,7 +108,7 @@ export function AddInterestFlow({ identityId, categories, influences, onSave, on
     recognition.lang = 'en-US';
     recognition.onresult = (e: any) => {
       const text = e.results[0][0].transcript;
-      setInterest(text);
+      setInterest(titleCase(text));
       setIsListening(false);
     };
     recognition.onerror = () => setIsListening(false);
@@ -259,7 +260,7 @@ export function AddInterestFlow({ identityId, categories, influences, onSave, on
                   ref={inputRef}
                   type="text"
                   value={interest}
-                  onChange={(e) => setInterest(e.target.value)}
+                  onChange={(e) => setInterest(titleCase(e.target.value))}
                   onKeyDown={(e) => e.key === 'Enter' && handleSubmitInterest()}
                   placeholder="e.g. Radiohead, sushi, stoicism..."
                   className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-[15px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500"
