@@ -46,6 +46,9 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
   const [newName, setNewName] = useState('');
   const [newAlignment, setNewAlignment] = useState('75');
   const [newMoodTags, setNewMoodTags] = useState('');
+  const [thumbsDownTarget, setThumbsDownTarget] = useState<Influence | null>(null);
+  const [thumbsDownReason, setThumbsDownReason] = useState('');
+  const [thumbsDownStep, setThumbsDownStep] = useState<'reason' | 'addToIdentity' | 'selectCategory'>('reason');
   const [recommendation, setRecommendation] = useState<{name: string; reason: string; alignment: number} | null>(null);
   const [loadingRec, setLoadingRec] = useState(false);
   const [dismissedRecs, setDismissedRecs] = useState<string[]>([]);
@@ -294,12 +297,17 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
                   </button>
                 )}
 
-                {/* Delete */}
+                {/* Thumbs down / Remove */}
                 <button
-                  onClick={() => removeInfluence(influence.id)}
-                  className="ml-2 text-zinc-600 hover:text-red-400 active:opacity-60 text-[14px] flex-shrink-0 p-1"
+                  onClick={() => {
+                    setThumbsDownTarget(influence);
+                    setThumbsDownReason('');
+                    setThumbsDownStep('reason');
+                  }}
+                  className="ml-2 w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800/60 border border-red-900/30 text-red-400 hover:bg-red-900/20 active:opacity-60 text-[13px] flex-shrink-0"
+                  title="Remove"
                 >
-                  ✕
+                  👎
                 </button>
               </div>
             );
@@ -418,6 +426,101 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
             >
               ✕
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Thumbs Down Flow Modal */}
+      {thumbsDownTarget && (
+        <div className="fixed inset-0 bg-black/80 z-[10000] flex items-end sm:items-center justify-center" onClick={() => setThumbsDownTarget(null)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-zinc-800/60">
+              <h3 className="text-[17px] font-semibold text-white">
+                👎 Remove "{thumbsDownTarget.name}"
+              </h3>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              {/* Step 1: Reason (optional) */}
+              {thumbsDownStep === 'reason' && (
+                <>
+                  <div>
+                    <label className="block text-[13px] text-zinc-500 mb-1.5">Why? (optional)</label>
+                    <textarea
+                      value={thumbsDownReason}
+                      onChange={e => setThumbsDownReason(e.target.value)}
+                      placeholder="e.g. Don't enjoy this anymore, bad experience..."
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF] resize-none"
+                      rows={3}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setThumbsDownTarget(null)}
+                      className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (thumbsDownReason.trim()) {
+                          // Has a reason — ask if they want to add distaste to identity
+                          setThumbsDownStep('addToIdentity');
+                        } else {
+                          // No reason — just remove
+                          removeInfluence(thumbsDownTarget.id);
+                          setThumbsDownTarget(null);
+                        }
+                      }}
+                      className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-red-500/80 text-white active:opacity-80"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Add distaste to identity? */}
+              {thumbsDownStep === 'addToIdentity' && (
+                <>
+                  <p className="text-[15px] text-zinc-400">
+                    Do you want to add this distaste to your identity?
+                  </p>
+                  <p className="text-[13px] text-zinc-500 bg-zinc-800/60 rounded-lg px-3 py-2">
+                    "{thumbsDownReason}" → registered as 0% alignment
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        // No — just remove without adding to identity
+                        removeInfluence(thumbsDownTarget.id);
+                        setThumbsDownTarget(null);
+                      }}
+                      className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80"
+                    >
+                      No, Just Remove
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Yes — route through Add Interest Flow with 0% alignment
+                        if (onSendToAddFlow) {
+                          removeInfluence(thumbsDownTarget.id);
+                          onSendToAddFlow(thumbsDownReason.trim(), 0);
+                          setThumbsDownTarget(null);
+                        } else {
+                          // Fallback: update the item to 0% instead of removing
+                          updateAlignment(thumbsDownTarget.id, 0);
+                          setThumbsDownTarget(null);
+                        }
+                      }}
+                      className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-[#007AFF] text-white active:opacity-80"
+                    >
+                      Yes, Add Distaste
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
