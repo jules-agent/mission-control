@@ -882,7 +882,7 @@ export default function IdentityPage() {
               <FamilyTree
                 identityId={selectedIdentity.id}
                 identityName={selectedIdentity.name}
-                familyTree={selectedIdentity.family_tree || null}
+                familyTree={selectedIdentity.family_tree && typeof selectedIdentity.family_tree === 'object' && !Array.isArray(selectedIdentity.family_tree) && selectedIdentity.family_tree.id ? selectedIdentity.family_tree : null}
                 onSave={updateFamilyTree}
               />
               {/* Actions */}
