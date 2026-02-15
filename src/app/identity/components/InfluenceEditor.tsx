@@ -12,6 +12,13 @@ interface Influence {
   mood_tags?: string[];
 }
 
+interface CategoryInfo {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  type: string;
+}
+
 interface InfluenceEditorProps {
   influences: Influence[];
   onUpdate: (influences: Influence[]) => void;
@@ -21,6 +28,8 @@ interface InfluenceEditorProps {
   allInfluences?: Record<string, Influence[]>;
   isAggregated?: boolean;
   onSendToAddFlow?: (interest: string, alignment: number, sourceCategory?: string) => void;
+  allCategories?: CategoryInfo[];
+  onMoveInfluence?: (influenceId: string, fromCategoryId: string, toCategoryIds: string[], name: string) => void;
 }
 
 function getAlignmentColor(alignment: number): string {
@@ -37,7 +46,7 @@ function getAlignmentDot(alignment: number): string {
   return '🔴';
 }
 
-export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId, categoryName, allInfluences, isAggregated, onSendToAddFlow }: InfluenceEditorProps) {
+export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId, categoryName, allInfluences, isAggregated, onSendToAddFlow, allCategories, onMoveInfluence }: InfluenceEditorProps) {
   const [items, setItems] = useState(influences);
   const [editingAlignment, setEditingAlignment] = useState<string | null>(null);
   const [alignmentInput, setAlignmentInput] = useState('');
@@ -49,6 +58,10 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
   const [thumbsDownTarget, setThumbsDownTarget] = useState<Influence | null>(null);
   const [thumbsDownReason, setThumbsDownReason] = useState('');
   const [thumbsDownStep, setThumbsDownStep] = useState<'reason' | 'addToIdentity' | 'selectCategory'>('reason');
+  const [editTarget, setEditTarget] = useState<Influence | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCategories, setEditCategories] = useState<string[]>([]);
+  const [editSearch, setEditSearch] = useState('');
   const [recommendation, setRecommendation] = useState<{name: string; reason: string; alignment: number} | null>(null);
   const [loadingRec, setLoadingRec] = useState(false);
   const [dismissedRecs, setDismissedRecs] = useState<string[]>([]);
@@ -139,6 +152,46 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     skipNextSyncRef.current = true;
     setItems(updated);
     onUpdate(updated);
+  }
+
+  function openEdit(influence: Influence) {
+    setEditTarget(influence);
+    setEditName(influence.name);
+    setEditCategories([influence.category_id || categoryId]);
+    setEditSearch('');
+  }
+
+  function saveEdit() {
+    if (!editTarget || !editName.trim()) return;
+    const currentCatId = editTarget.category_id || categoryId;
+    const trimmedName = titleCase(editName.trim());
+
+    // Update name in current list
+    if (trimmedName !== editTarget.name) {
+      const updated = items.map(item =>
+        item.id === editTarget.id ? { ...item, name: trimmedName } : item
+      );
+      skipNextSyncRef.current = true;
+      setItems(updated);
+      onUpdate(updated);
+    }
+
+    // Handle category changes via onMoveInfluence
+    if (onMoveInfluence) {
+      const addedCategories = editCategories.filter(c => c !== currentCatId);
+      if (addedCategories.length > 0) {
+        onMoveInfluence(editTarget.id, currentCatId, addedCategories, trimmedName);
+      }
+      // If unchecked original category, remove from current list
+      if (!editCategories.includes(currentCatId)) {
+        const updated = items.filter(item => item.id !== editTarget.id).map((item, i) => ({ ...item, position: i }));
+        skipNextSyncRef.current = true;
+        setItems(updated);
+        onUpdate(updated);
+      }
+    }
+
+    setEditTarget(null);
   }
 
   function addInfluence() {
@@ -304,10 +357,17 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
                   </button>
                 )}
 
+                {/* Edit */}
+                <button
+                  onClick={() => openEdit(influence)}
+                  className="ml-1 text-zinc-600 hover:text-zinc-300 active:opacity-60 text-[12px] flex-shrink-0 p-1"
+                >
+                  ✏️
+                </button>
                 {/* Delete */}
                 <button
                   onClick={() => removeInfluence(influence.id)}
-                  className="ml-2 text-zinc-600 hover:text-red-400 active:opacity-60 text-[14px] flex-shrink-0 p-1"
+                  className="text-zinc-600 hover:text-red-400 active:opacity-60 text-[14px] flex-shrink-0 p-1"
                 >
                   ✕
                 </button>
@@ -526,6 +586,180 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
           </div>
         </div>
       )}
+      {/* Edit Influence Modal */}
+      {editTarget && (
+        <EditInfluenceModal
+          influence={editTarget}
+          editName={editName}
+          setEditName={setEditName}
+          editCategories={editCategories}
+          setEditCategories={setEditCategories}
+          editSearch={editSearch}
+          setEditSearch={setEditSearch}
+          currentCategoryId={editTarget.category_id || categoryId}
+          currentCategoryName={categoryName}
+          allCategories={allCategories || []}
+          onSave={saveEdit}
+          onDelete={() => {
+            removeInfluence(editTarget.id);
+            setEditTarget(null);
+          }}
+          onClose={() => setEditTarget(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditInfluenceModal({
+  influence,
+  editName, setEditName,
+  editCategories, setEditCategories,
+  editSearch, setEditSearch,
+  currentCategoryId, currentCategoryName,
+  allCategories,
+  onSave, onDelete, onClose,
+}: {
+  influence: Influence;
+  editName: string; setEditName: (v: string) => void;
+  editCategories: string[]; setEditCategories: (v: string[]) => void;
+  editSearch: string; setEditSearch: (v: string) => void;
+  currentCategoryId: string;
+  currentCategoryName: string;
+  allCategories: CategoryInfo[];
+  onSave: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  // Lock body scroll
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  // Filter categories for search (exclude current)
+  const filteredCategories = allCategories.filter(c => {
+    if (!editSearch.trim()) return true;
+    return c.name.toLowerCase().includes(editSearch.toLowerCase());
+  });
+
+  function toggleCategory(catId: string) {
+    setEditCategories(
+      editCategories.includes(catId)
+        ? editCategories.filter(c => c !== catId)
+        : [...editCategories, catId]
+    );
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 z-[10000] flex items-end sm:items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto overscroll-contain"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-5 py-4 border-b border-zinc-800/60 sticky top-0 bg-zinc-900 z-10">
+          <h3 className="text-[17px] font-semibold text-white">Edit Influence</h3>
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-[13px] text-zinc-500 mb-1.5">Name</label>
+            <input
+              type="text"
+              value={editName}
+              onChange={e => setEditName(titleCase(e.target.value))}
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF]"
+              autoFocus
+            />
+          </div>
+
+          {/* Categories */}
+          <div>
+            <label className="block text-[13px] text-zinc-500 mb-1.5">Categories</label>
+            <p className="text-[11px] text-zinc-600 mb-2">Check multiple to add this influence to other categories</p>
+
+            {/* Search */}
+            {allCategories.length > 10 && (
+              <input
+                type="text"
+                value={editSearch}
+                onChange={e => setEditSearch(e.target.value)}
+                placeholder="Search categories..."
+                className="w-full px-3 py-2 mb-2 bg-zinc-800 border border-zinc-700 rounded-lg text-[13px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF]"
+              />
+            )}
+
+            <div className="max-h-[200px] overflow-y-auto overscroll-contain space-y-1">
+              {filteredCategories.map(cat => {
+                const isChecked = editCategories.includes(cat.id);
+                const isCurrent = cat.id === currentCategoryId;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => toggleCategory(cat.id)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all ${
+                      isChecked
+                        ? 'bg-[#007AFF]/15 border border-[#007AFF]/40'
+                        : 'bg-zinc-800/60 border border-zinc-800'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded flex items-center justify-center text-[12px] flex-shrink-0 ${
+                      isChecked ? 'bg-[#007AFF] text-white' : 'bg-zinc-700 text-zinc-500'
+                    }`}>
+                      {isChecked ? '✓' : ''}
+                    </span>
+                    <span className={`text-[14px] ${isChecked ? 'text-white' : 'text-zinc-400'}`}>
+                      {cat.name}
+                      {isCurrent && <span className="text-zinc-600 text-[11px] ml-1">(current)</span>}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2 pb-4">
+            <button
+              type="button"
+              onClick={onDelete}
+              className="py-3.5 px-4 rounded-xl text-[15px] font-semibold bg-red-500/10 border border-red-500/20 text-red-400 active:opacity-80"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3.5 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              className="flex-1 py-3.5 rounded-xl text-[15px] font-semibold bg-[#007AFF] active:bg-[#0064CC] text-white"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

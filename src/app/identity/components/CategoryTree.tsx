@@ -76,9 +76,23 @@ function getAllInfluencesForCategory(category: Category, influences: Record<stri
   return all;
 }
 
+/** Flatten all categories recursively */
+function flattenCategories(cats: Category[]): { id: string; name: string; parent_id: string | null; type: string }[] {
+  const result: { id: string; name: string; parent_id: string | null; type: string }[] = [];
+  function walk(list: Category[]) {
+    for (const c of list) {
+      result.push({ id: c.id, name: c.name, parent_id: c.parent_id, type: c.type });
+      if (c.subcategories) walk(c.subcategories);
+    }
+  }
+  walk(cats);
+  return result;
+}
+
 export function CategoryTree({
   identityId, categories, influences, onAddCategory, onAddInfluence, onUpdateInfluences, onDeleteCategory, onSendToAddFlow
 }: CategoryTreeProps) {
+  const allCategoriesFlat = flattenCategories(categories);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [suggestions, setSuggestions] = useState<{ parentId: string | null; items: CategorySuggestion[] } | null>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState<string | null>(null); // parentId or 'root'
@@ -210,6 +224,21 @@ export function CategoryTree({
                 categoryId={category.id}
                 categoryName={category.name}
                 onSendToAddFlow={onSendToAddFlow}
+                allCategories={allCategoriesFlat}
+                onMoveInfluence={(influenceId, fromCatId, toCatIds, name) => {
+                  // Copy influence to additional categories
+                  for (const toCatId of toCatIds) {
+                    const existing = influences[toCatId] || [];
+                    const newInf: Influence = {
+                      id: crypto.randomUUID(),
+                      name,
+                      alignment: 75,
+                      position: existing.length,
+                      mood_tags: [],
+                    };
+                    onUpdateInfluences(toCatId, [...existing, newInf]);
+                  }
+                }}
               />
             ) : (
               <InfluenceEditor
@@ -234,6 +263,20 @@ export function CategoryTree({
                 allInfluences={influences}
                 isAggregated={true}
                 onSendToAddFlow={onSendToAddFlow}
+                allCategories={allCategoriesFlat}
+                onMoveInfluence={(influenceId, fromCatId, toCatIds, name) => {
+                  for (const toCatId of toCatIds) {
+                    const existing = influences[toCatId] || [];
+                    const newInf: Influence = {
+                      id: crypto.randomUUID(),
+                      name,
+                      alignment: 75,
+                      position: existing.length,
+                      mood_tags: [],
+                    };
+                    onUpdateInfluences(toCatId, [...existing, newInf]);
+                  }
+                }}
               />
             )}
 
