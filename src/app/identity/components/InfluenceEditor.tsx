@@ -93,31 +93,19 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     } catch {}
   }
 
-  // Only sync from props when the actual content changes (not just reference)
-  // This prevents bounce-back after local reorders/deletes
+  // Skip next prop sync after local mutations (delete, reorder, add)
+  // This prevents the stale parent props from overwriting local state
+  const skipNextSyncRef = useRef(false);
   const lastSyncedRef = useRef<string>('');
   
   useEffect(() => {
+    if (skipNextSyncRef.current) {
+      skipNextSyncRef.current = false;
+      lastSyncedRef.current = JSON.stringify(influences.map(i => ({ id: i.id, p: i.position, a: i.alignment })));
+      return;
+    }
     const incoming = JSON.stringify(influences.map(i => ({ id: i.id, p: i.position, a: i.alignment })));
     if (incoming !== lastSyncedRef.current) {
-      // Check if local items match incoming (just reordered locally)
-      const local = JSON.stringify(items.map(i => ({ id: i.id, p: i.position, a: i.alignment })));
-      if (local === incoming) {
-        // Already in sync, just update the ref
-        lastSyncedRef.current = incoming;
-        return;
-      }
-      // Check if this is just a position update we initiated
-      const localIds = new Set(items.map(i => i.id));
-      const incomingIds = new Set(influences.map(i => i.id));
-      const sameIds = localIds.size === incomingIds.size && [...localIds].every(id => incomingIds.has(id));
-      if (sameIds && items.length === influences.length) {
-        // Same items, different order/values — this is likely our own update arriving back
-        // Keep local state (which has the user's intended order)
-        lastSyncedRef.current = incoming;
-        return;
-      }
-      // Different items (add/remove happened externally) — sync from props
       lastSyncedRef.current = incoming;
       setItems(influences);
     }
@@ -133,6 +121,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     const reordered = [...items];
     [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
     const updated = reordered.map((item, i) => ({ ...item, position: i }));
+    skipNextSyncRef.current = true;
     setItems(updated);
     onUpdate(updated);
   }
@@ -140,12 +129,14 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
   function updateAlignment(id: string, newAlignment: number) {
     const clamped = Math.max(0, Math.min(100, newAlignment));
     const updated = items.map(item => item.id === id ? { ...item, alignment: clamped } : item);
+    skipNextSyncRef.current = true;
     setItems(updated);
     onUpdate(updated);
   }
 
   function removeInfluence(id: string) {
     const updated = items.filter(item => item.id !== id).map((item, i) => ({ ...item, position: i }));
+    skipNextSyncRef.current = true;
     setItems(updated);
     onUpdate(updated);
   }
@@ -161,6 +152,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
       mood_tags: tags,
     };
     const updated = [...items, newInfluence];
+    skipNextSyncRef.current = true;
     setItems(updated);
     onUpdate(updated);
     setNewName('');
