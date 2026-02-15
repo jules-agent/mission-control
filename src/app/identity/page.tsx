@@ -28,7 +28,23 @@ interface Identity {
   family_tree?: FamilyMember | null;
   gender?: string | null;
   birthday?: string | null;
+  show_ai_automations?: boolean;
 }
+
+// Categories that belong under "AI & Automations" — operational/behavioral, not interest-based
+const AI_AUTOMATION_CATEGORIES = new Set([
+  'Daily Rhythm & Habits',
+  'Communication Preferences',
+  'Communication Style',
+  'Values & Priorities',
+  'Values & Principles',
+  'Values',
+  'Lifestyle & Daily Habits',
+  'Lifestyle & Work Habits',
+  'Behavior Profile',
+  'Learning Style',
+  'Personality',
+]);
 
 interface Category {
   id: string;
@@ -644,21 +660,61 @@ export default function IdentityPage() {
 
             {/* Physical Attributes moved into profile edit sheet */}
 
-            {selectedIdentity && (
-              <CategoryTree
-                categories={categories}
-                influences={influences}
-                onAddCategory={addCategory}
-                onAddInfluence={addInfluence}
-                onUpdateInfluences={updateInfluences}
-                onDeleteCategory={deleteCategory}
-                onSendToAddFlow={(interest, alignment) => {
-                  setPrefillInterest(interest);
-                  setPrefillAlignment(alignment);
-                  setShowAddInterest(true);
-                }}
-              />
-            )}
+            {selectedIdentity && (() => {
+              const aiCategories = categories.filter(c => AI_AUTOMATION_CATEGORIES.has(c.name));
+              const regularCategories = categories.filter(c => !AI_AUTOMATION_CATEGORIES.has(c.name));
+              const showAI = selectedIdentity.show_ai_automations;
+
+              return (
+                <>
+                  {/* AI & Automations Section */}
+                  {aiCategories.length > 0 && showAI && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[18px]">🤖</span>
+                          <h3 className="text-[17px] font-semibold text-white">AI & Automations</h3>
+                        </div>
+                        <span className="text-[12px] text-zinc-500 bg-zinc-800/60 px-2 py-1 rounded-lg">
+                          {aiCategories.length} categories
+                        </span>
+                      </div>
+                      <p className="text-[13px] text-zinc-500 -mt-1">
+                        Behavioral preferences that guide how AI interacts with you
+                      </p>
+                      <CategoryTree
+                        categories={aiCategories}
+                        influences={influences}
+                        onAddCategory={addCategory}
+                        onAddInfluence={addInfluence}
+                        onUpdateInfluences={updateInfluences}
+                        onDeleteCategory={deleteCategory}
+                        onSendToAddFlow={(interest, alignment) => {
+                          setPrefillInterest(interest);
+                          setPrefillAlignment(alignment);
+                          setShowAddInterest(true);
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Regular Identity Categories */}
+                  <CategoryTree
+                    categories={regularCategories}
+                    influences={influences}
+                    onAddCategory={addCategory}
+                    onAddInfluence={addInfluence}
+                    onUpdateInfluences={updateInfluences}
+                    onDeleteCategory={deleteCategory}
+                    onSendToAddFlow={(interest, alignment) => {
+                      setPrefillInterest(interest);
+                      setPrefillAlignment(alignment);
+                      setShowAddInterest(true);
+                    }}
+                  />
+                </>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -798,6 +854,25 @@ export default function IdentityPage() {
                 physicalAttributes={selectedIdentity.physical_attributes}
                 onSave={updatePhysicalAttributes}
               />
+              {/* AI & Automations Toggle */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium">🤖 AI & Automations</label>
+                  <button
+                    onClick={() => updateIdentityField(selectedIdentity.id, 'show_ai_automations', !selectedIdentity.show_ai_automations)}
+                    className={`relative w-12 h-7 rounded-full transition-colors ${
+                      selectedIdentity.show_ai_automations ? 'bg-[#34C759]' : 'bg-zinc-700'
+                    }`}
+                  >
+                    <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                      selectedIdentity.show_ai_automations ? 'translate-x-5' : 'translate-x-0.5'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-[12px] text-zinc-600 mt-1">
+                  Show behavioral categories (daily rhythm, communication style, values) that guide AI interactions
+                </p>
+              </div>
               {/* Family Tree */}
               <FamilyTree
                 identityId={selectedIdentity.id}
