@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import NewsCuratorView from '../components/NewsCuratorView';
+import { ContextViewSwitcher } from '../components/ContextViewSwitcher';
 
 export default async function NewsCuratorPage() {
   const supabase = await createClient();
@@ -50,11 +51,14 @@ export default async function NewsCuratorPage() {
   });
   
   return (
-    <NewsCuratorView
-      profile={profile}
-      categories={workCategories}
-      influences={influencesByCategory}
-      newsCategory={newsCategory}
-    />
+    <>
+      <ContextViewSwitcher />
+      <NewsCuratorView
+        profile={profile}
+        categories={workCategories}
+        influences={influencesByCategory}
+        newsCategory={newsCategory}
+      />
+    </>
   );
 }

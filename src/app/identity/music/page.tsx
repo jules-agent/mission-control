@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import MusicCuratorView from '../components/MusicCuratorView';
+import { ContextViewSwitcher } from '../components/ContextViewSwitcher';
 
 export default async function MusicCuratorPage() {
   const supabase = await createClient();
@@ -50,10 +51,13 @@ export default async function MusicCuratorPage() {
   });
   
   return (
-    <MusicCuratorView
-      profile={profile}
-      categories={musicCategories}
-      influences={influencesByCategory}
-    />
+    <>
+      <ContextViewSwitcher />
+      <MusicCuratorView
+        profile={profile}
+        categories={musicCategories}
+        influences={influencesByCategory}
+      />
+    </>
   );
 }
