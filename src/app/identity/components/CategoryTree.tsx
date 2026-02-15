@@ -319,7 +319,6 @@ export function CategoryTree({
                 Delete
               </button>
             </div>
-          </div>
 
             {/* AI Suggestions for this category */}
             {suggestions && suggestions.parentId === category.id && suggestions.items.length > 0 && (
