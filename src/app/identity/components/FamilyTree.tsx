@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export interface FamilyMember {
   id: string;
@@ -327,18 +327,68 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
       )}
 
       {/* Add Member Modal — prevent background scroll */}
-      {showAddModal && (
-        <div
-          className="fixed inset-0 bg-black/80 z-[10000] flex items-end sm:items-center justify-center"
-          onClick={() => setShowAddModal(null)}
-          onTouchMove={e => e.preventDefault()}
-          style={{ overscrollBehavior: 'contain' }}
-        >
-          <div
-            className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
-            onClick={e => e.stopPropagation()}
-            onTouchMove={e => e.stopPropagation()}
-          >
+      {showAddModal && <AddMemberModal
+        showAddModal={showAddModal}
+        addFirstName={addFirstName}
+        setAddFirstName={setAddFirstName}
+        addLastName={addLastName}
+        setAddLastName={setAddLastName}
+        addNickname={addNickname}
+        setAddNickname={setAddNickname}
+        addRelationship={addRelationship}
+        setAddRelationship={setAddRelationship}
+        onClose={() => setShowAddModal(null)}
+        onAdd={handleAddMember}
+      />}
+    </div>
+  );
+}
+
+function AddMemberModal({
+  showAddModal,
+  addFirstName, setAddFirstName,
+  addLastName, setAddLastName,
+  addNickname, setAddNickname,
+  addRelationship, setAddRelationship,
+  onClose, onAdd,
+}: {
+  showAddModal: { parentId: string; asPartner: boolean };
+  addFirstName: string; setAddFirstName: (v: string) => void;
+  addLastName: string; setAddLastName: (v: string) => void;
+  addNickname: string; setAddNickname: (v: string) => void;
+  addRelationship: string; setAddRelationship: (v: string) => void;
+  onClose: () => void;
+  onAdd: () => void;
+}) {
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  const canSubmit = addFirstName.trim().length > 0 && addRelationship.length > 0;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 z-[10000] flex items-end sm:items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto overscroll-contain"
+        onClick={e => e.stopPropagation()}
+      >
             <div className="px-5 py-4 border-b border-zinc-800/60 sticky top-0 bg-zinc-900 z-10">
               <h3 className="text-[17px] font-semibold text-white">
                 {showAddModal.asPartner ? 'Add Partner' : 'Add Family Member'}
@@ -381,13 +431,14 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
               </div>
               <div>
                 <label className="block text-[13px] text-zinc-500 mb-1.5">Relationship *</label>
-                <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto" onTouchMove={e => e.stopPropagation()}>
+                <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto overscroll-contain">
                   {(showAddModal.asPartner
                     ? ['Spouse', 'Partner', 'Fiancé', 'Fiancée']
                     : RELATIONSHIP_OPTIONS
                   ).map(rel => (
                     <button
                       key={rel}
+                      type="button"
                       onClick={() => setAddRelationship(rel)}
                       className={`px-3 py-2 rounded-lg text-[13px] font-medium transition-all border ${
                         addRelationship === rel
@@ -400,20 +451,21 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
                   ))}
                 </div>
               </div>
-              <div className="flex gap-3 pt-2 pb-2">
+              <div className="flex gap-3 pt-2 pb-4">
                 <button
-                  onClick={() => setShowAddModal(null)}
-                  className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80"
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-3.5 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleAddMember}
-                  disabled={!addFirstName.trim() || !addRelationship}
-                  className={`flex-1 py-3 rounded-xl text-[15px] font-semibold transition-all ${
-                    addFirstName.trim() && addRelationship
+                  type="button"
+                  onClick={() => { if (canSubmit) onAdd(); }}
+                  className={`flex-1 py-3.5 rounded-xl text-[15px] font-semibold transition-all ${
+                    canSubmit
                       ? 'bg-[#007AFF] active:bg-[#0064CC] text-white'
-                      : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                      : 'bg-zinc-800 text-zinc-600'
                   }`}
                 >
                   Add
@@ -422,7 +474,5 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
             </div>
           </div>
         </div>
-      )}
-    </div>
   );
 }
