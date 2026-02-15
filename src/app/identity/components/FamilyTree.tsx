@@ -4,7 +4,10 @@ import { useState, useCallback } from 'react';
 
 export interface FamilyMember {
   id: string;
-  name: string;
+  name: string; // display name (nickname if set, otherwise "First Last")
+  firstName?: string;
+  lastName?: string;
+  nickname?: string;
   relationship: string;
   children: FamilyMember[];
   partner?: FamilyMember;
@@ -236,7 +239,9 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
     familyTree || createDefaultTree(identityName)
   );
   const [showAddModal, setShowAddModal] = useState<{ parentId: string; asPartner: boolean } | null>(null);
-  const [addName, setAddName] = useState('');
+  const [addFirstName, setAddFirstName] = useState('');
+  const [addLastName, setAddLastName] = useState('');
+  const [addNickname, setAddNickname] = useState('');
   const [addRelationship, setAddRelationship] = useState('');
   const [expanded, setExpanded] = useState(true);
 
@@ -246,17 +251,23 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
   }, [identityId, onSave]);
 
   function handleAddMember() {
-    if (!showAddModal || !addName.trim() || !addRelationship) return;
+    if (!showAddModal || !addFirstName.trim() || !addRelationship) return;
+    const displayName = addNickname.trim() || `${addFirstName.trim()} ${addLastName.trim()}`.trim();
     const newMember: FamilyMember = {
       id: generateId(),
-      name: addName.trim(),
+      name: displayName,
+      firstName: addFirstName.trim(),
+      lastName: addLastName.trim(),
+      nickname: addNickname.trim() || undefined,
       relationship: addRelationship,
       children: [],
     };
     const updated = addMemberToTree(tree, showAddModal.parentId, newMember, showAddModal.asPartner);
     saveTree(updated);
     setShowAddModal(null);
-    setAddName('');
+    setAddFirstName('');
+    setAddLastName('');
+    setAddNickname('');
     setAddRelationship('');
   }
 
@@ -301,12 +312,12 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
             depth={0}
             onAddChild={(parentId) => {
               setShowAddModal({ parentId, asPartner: false });
-              setAddName('');
+              setAddFirstName(''); setAddLastName(''); setAddNickname('');
               setAddRelationship('');
             }}
             onAddPartner={(parentId) => {
               setShowAddModal({ parentId, asPartner: true });
-              setAddName('');
+              setAddFirstName(''); setAddLastName(''); setAddNickname('');
               setAddRelationship('Spouse');
             }}
             onRemove={handleRemove}
@@ -315,30 +326,62 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
         </div>
       )}
 
-      {/* Add Member Modal */}
+      {/* Add Member Modal — prevent background scroll */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 z-[10000] flex items-end sm:items-center justify-center" onClick={() => setShowAddModal(null)}>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-zinc-800/60">
+        <div
+          className="fixed inset-0 bg-black/80 z-[10000] flex items-end sm:items-center justify-center"
+          onClick={() => setShowAddModal(null)}
+          onTouchMove={e => e.preventDefault()}
+          style={{ overscrollBehavior: 'contain' }}
+        >
+          <div
+            className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-zinc-800/60 sticky top-0 bg-zinc-900 z-10">
               <h3 className="text-[17px] font-semibold text-white">
                 {showAddModal.asPartner ? 'Add Partner' : 'Add Family Member'}
               </h3>
             </div>
             <div className="px-5 py-4 space-y-4">
-              <div>
-                <label className="block text-[13px] text-zinc-500 mb-1.5">Name</label>
-                <input
-                  type="text"
-                  value={addName}
-                  onChange={e => setAddName(e.target.value)}
-                  placeholder="Full name"
-                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF]"
-                  autoFocus
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[13px] text-zinc-500 mb-1.5">First Name *</label>
+                  <input
+                    type="text"
+                    value={addFirstName}
+                    onChange={e => setAddFirstName(e.target.value)}
+                    placeholder="First"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF]"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-[13px] text-zinc-500 mb-1.5">Last Name</label>
+                  <input
+                    type="text"
+                    value={addLastName}
+                    onChange={e => setAddLastName(e.target.value)}
+                    placeholder="Last"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF]"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-[13px] text-zinc-500 mb-1.5">Relationship</label>
-                <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
+                <label className="block text-[13px] text-zinc-500 mb-1.5">Nickname <span className="text-zinc-600">(display name)</span></label>
+                <input
+                  type="text"
+                  value={addNickname}
+                  onChange={e => setAddNickname(e.target.value)}
+                  placeholder="e.g. Auggie, Mags"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-[#007AFF]"
+                />
+                <p className="text-[11px] text-zinc-600 mt-1">If set, nickname is shown instead of full name</p>
+              </div>
+              <div>
+                <label className="block text-[13px] text-zinc-500 mb-1.5">Relationship *</label>
+                <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto" onTouchMove={e => e.stopPropagation()}>
                   {(showAddModal.asPartner
                     ? ['Spouse', 'Partner', 'Fiancé', 'Fiancée']
                     : RELATIONSHIP_OPTIONS
@@ -357,7 +400,7 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
                   ))}
                 </div>
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 pb-2">
                 <button
                   onClick={() => setShowAddModal(null)}
                   className="flex-1 py-3 rounded-xl text-[15px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300 active:opacity-80"
@@ -366,9 +409,9 @@ export function FamilyTree({ identityId, identityName, familyTree, onSave }: Fam
                 </button>
                 <button
                   onClick={handleAddMember}
-                  disabled={!addName.trim() || !addRelationship}
+                  disabled={!addFirstName.trim() || !addRelationship}
                   className={`flex-1 py-3 rounded-xl text-[15px] font-semibold transition-all ${
-                    addName.trim() && addRelationship
+                    addFirstName.trim() && addRelationship
                       ? 'bg-[#007AFF] active:bg-[#0064CC] text-white'
                       : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                   }`}
