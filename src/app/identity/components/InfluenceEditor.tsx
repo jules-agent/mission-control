@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { titleCase } from '@/lib/titleCase';
 
 interface Influence {
@@ -90,7 +90,16 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     } catch {}
   }
 
-  useEffect(() => { setItems(influences); }, [influences]);
+  // Track whether we just made a local update — skip the next prop sync to avoid bounce-back
+  const skipNextSync = useRef(false);
+  
+  useEffect(() => {
+    if (skipNextSync.current) {
+      skipNextSync.current = false;
+      return;
+    }
+    setItems(influences);
+  }, [influences]);
 
   const serving = items.filter(i => i.alignment >= 60).length;
   const displayItems = showBelowThreshold ? items : items.filter(i => i.alignment >= 60);
@@ -103,6 +112,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
     const updated = reordered.map((item, i) => ({ ...item, position: i }));
     setItems(updated);
+    skipNextSync.current = true;
     onUpdate(updated);
   }
 
@@ -110,12 +120,14 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     const clamped = Math.max(0, Math.min(100, newAlignment));
     const updated = items.map(item => item.id === id ? { ...item, alignment: clamped } : item);
     setItems(updated);
+    skipNextSync.current = true;
     onUpdate(updated);
   }
 
   function removeInfluence(id: string) {
     const updated = items.filter(item => item.id !== id).map((item, i) => ({ ...item, position: i }));
     setItems(updated);
+    skipNextSync.current = true;
     onUpdate(updated);
   }
 
@@ -131,6 +143,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     };
     const updated = [...items, newInfluence];
     setItems(updated);
+    skipNextSync.current = true;
     onUpdate(updated);
     setNewName('');
     setNewAlignment('50');
