@@ -76,6 +76,7 @@ export default function IdentityPage() {
   const [showAddInterest, setShowAddInterest] = useState(false);
   const [prefillInterest, setPrefillInterest] = useState<string | undefined>();
   const [prefillAlignment, setPrefillAlignment] = useState<number | undefined>();
+  const [prefillSourceCategory, setPrefillSourceCategory] = useState<string | undefined>();
   const [viewingAsUser, setViewingAsUser] = useState<{ email: string; id: string } | null>(null);
   const [showShopping, setShowShopping] = useState(false);
   const [showFoodEngine, setShowFoodEngine] = useState(false);
@@ -689,9 +690,10 @@ export default function IdentityPage() {
                         onAddInfluence={addInfluence}
                         onUpdateInfluences={updateInfluences}
                         onDeleteCategory={deleteCategory}
-                        onSendToAddFlow={(interest, alignment) => {
+                        onSendToAddFlow={(interest, alignment, sourceCategory) => {
                           setPrefillInterest(interest);
                           setPrefillAlignment(alignment);
+                          setPrefillSourceCategory(sourceCategory);
                           setShowAddInterest(true);
                         }}
                       />
@@ -706,9 +708,10 @@ export default function IdentityPage() {
                     onAddInfluence={addInfluence}
                     onUpdateInfluences={updateInfluences}
                     onDeleteCategory={deleteCategory}
-                    onSendToAddFlow={(interest, alignment) => {
+                    onSendToAddFlow={(interest, alignment, sourceCategory) => {
                       setPrefillInterest(interest);
                       setPrefillAlignment(alignment);
+                          setPrefillSourceCategory(sourceCategory);
                       setShowAddInterest(true);
                     }}
                   />
@@ -743,10 +746,12 @@ export default function IdentityPage() {
             setShowAddInterest(false);
             setPrefillInterest(undefined);
             setPrefillAlignment(undefined);
+            setPrefillSourceCategory(undefined);
             if (selectedIdentity) loadCategories(selectedIdentity.id);
           }}
           initialInterest={prefillInterest}
           initialAlignment={prefillAlignment}
+          sourceCategory={prefillSourceCategory}
         />
       )}
 

@@ -20,7 +20,7 @@ interface InfluenceEditorProps {
   categoryName: string;
   allInfluences?: Record<string, Influence[]>;
   isAggregated?: boolean;
-  onSendToAddFlow?: (interest: string, alignment: number) => void;
+  onSendToAddFlow?: (interest: string, alignment: number, sourceCategory?: string) => void;
 }
 
 function getAlignmentColor(alignment: number): string {
@@ -182,7 +182,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     if (!recommendation) return;
     if (onSendToAddFlow) {
       // Send through the full Add Interest Flow (categorize → confirm → alignment → rank → save)
-      onSendToAddFlow(recommendation.name, recommendation.alignment);
+      onSendToAddFlow(recommendation.name, recommendation.alignment, categoryName);
       setRecommendation(null);
     } else {
       // Fallback: add directly to current category
@@ -505,7 +505,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
                         // Yes — route through Add Interest Flow with 0% alignment
                         if (onSendToAddFlow) {
                           removeInfluence(thumbsDownTarget.id);
-                          onSendToAddFlow(thumbsDownReason.trim(), 0);
+                          onSendToAddFlow(thumbsDownReason.trim(), 0, categoryName);
                           setThumbsDownTarget(null);
                         } else {
                           // Fallback: update the item to 0% instead of removing

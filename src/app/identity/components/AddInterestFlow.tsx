@@ -31,11 +31,12 @@ interface AddInterestFlowProps {
   onClose: () => void;
   initialInterest?: string;
   initialAlignment?: number;
+  sourceCategory?: string;
 }
 
 type Step = 'input' | 'categorizing' | 'confirm-category' | 'pick-category' | 'alignment' | 'position' | 'saving' | 'done';
 
-export function AddInterestFlow({ identityId, categories, influences, onSave, onCreateCategory, onClose, initialInterest, initialAlignment }: AddInterestFlowProps) {
+export function AddInterestFlow({ identityId, categories, influences, onSave, onCreateCategory, onClose, initialInterest, initialAlignment, sourceCategory }: AddInterestFlowProps) {
   const [step, setStep] = useState<Step>(initialInterest ? 'categorizing' : 'input');
   const [interest, setInterest] = useState(initialInterest || '');
   const [suggestedCategory, setSuggestedCategory] = useState('');
@@ -125,7 +126,7 @@ export function AddInterestFlow({ identityId, categories, influences, onSave, on
       const res = await fetch('/api/identity/categorize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interest: text.trim(), identityId }),
+        body: JSON.stringify({ interest: text.trim(), identityId, sourceCategory }),
       });
       const data = await res.json();
       setSuggestedCategory(data.category);

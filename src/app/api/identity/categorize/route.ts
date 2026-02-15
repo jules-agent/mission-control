@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { interest, identityId } = await request.json();
+    const { interest, identityId, sourceCategory } = await request.json();
     if (!interest || !identityId) {
       return NextResponse.json({ error: 'interest and identityId required' }, { status: 400 });
     }
@@ -33,28 +33,46 @@ export async function POST(request: Request) {
       .eq('identity_id', identityId)
       .order('level');
 
-    const categoryList = (categories || [])
-      .map(c => {
-        const parent = categories?.find(p => p.id === c.parent_id);
-        return parent ? `${parent.name} > ${c.name}` : c.name;
-      })
-      .join(', ');
+    // Build hierarchical category list — prefer subcategories (leaf nodes) for placement
+    const rootCats = (categories || []).filter(c => !c.parent_id);
+    const categoryLines: string[] = [];
+    for (const root of rootCats) {
+      const subs = (categories || []).filter(c => c.parent_id === root.id);
+      if (subs.length > 0) {
+        for (const sub of subs) {
+          categoryLines.push(`"${root.name} > ${sub.name}" (use "${sub.name}" as the match)`);
+        }
+      } else {
+        categoryLines.push(`"${root.name}"`);
+      }
+    }
+    const categoryList = categoryLines.join('\n') || 'none yet';
+
+    // If we know where this came from (e.g., AI recommendation from a specific category), bias toward it
+    const sourceCategoryHint = sourceCategory 
+      ? `\n\nIMPORTANT: This interest was recommended from the "${sourceCategory}" category. Unless it clearly belongs elsewhere, match it to "${sourceCategory}".`
+      : '';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        temperature: 0.3,
+        temperature: 0.1,
         max_tokens: 100,
         messages: [
           {
             role: 'system',
-            content: `You categorize interests/influences into identity profile categories. Given an interest and existing categories, pick the best match. If no existing category fits well, suggest a new one. Reply with JSON only: {"category":"exact category name","isNew":false,"suggestedType":"music|food|philosophy|custom","confidence":"high|medium|low"}`
+            content: `You categorize interests/influences into identity profile categories. RULES:
+1. ALWAYS prefer an existing category over creating a new one
+2. For subcategories like "Music > Artists", match to the subcategory name "Artists" 
+3. Only suggest a new category if NOTHING existing fits at all
+4. Match the EXACT name of an existing category — do not rename or rephrase it
+Reply with JSON only: {"category":"exact category name from list","isNew":false,"suggestedType":"music|food|philosophy|custom","confidence":"high|medium|low"}`
           },
           {
             role: 'user',
-            content: `Interest: "${interest}"\nExisting categories: ${categoryList || 'none yet'}`
+            content: `Interest: "${interest}"\n\nExisting categories:\n${categoryList}${sourceCategoryHint}`
           }
         ]
       })
@@ -65,8 +83,10 @@ export async function POST(request: Request) {
     
     try {
       const parsed = JSON.parse(content);
-      // Find the matching category ID if it exists
-      const match = categories?.find(c => c.name.toLowerCase() === parsed.category?.toLowerCase());
+      // Find the matching category ID — try exact match, then case-insensitive, then partial
+      const catName = parsed.category?.toLowerCase() || '';
+      const match = categories?.find(c => c.name.toLowerCase() === catName) 
+        || categories?.find(c => c.name.toLowerCase().includes(catName) || catName.includes(c.name.toLowerCase()));
       return NextResponse.json({
         category: parsed.category,
         categoryId: match?.id || null,

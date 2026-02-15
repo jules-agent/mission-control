@@ -29,7 +29,7 @@ interface CategoryTreeProps {
   onAddInfluence: (categoryId: string, name: string) => void;
   onUpdateInfluences: (categoryId: string, influences: Influence[]) => void;
   onDeleteCategory: (categoryId: string) => void;
-  onSendToAddFlow?: (interest: string, alignment: number) => void;
+  onSendToAddFlow?: (interest: string, alignment: number, sourceCategory?: string) => void;
 }
 
 function getAlignmentDotColor(alignment: number): string {
