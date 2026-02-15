@@ -13,6 +13,7 @@ import { BugReportButton } from '../components/BugReportButton';
 import { ZoomControl } from '../components/ZoomControl';
 import { ShoppingEngine } from './components/ShoppingEngine';
 import { FoodEngine } from './components/FoodEngine';
+import { FamilyTree, FamilyMember } from './components/FamilyTree';
 
 interface Identity {
   id: string;
@@ -24,6 +25,7 @@ interface Identity {
   state?: string;
   country?: string;
   physical_attributes?: Record<string, any>;
+  family_tree?: FamilyMember | null;
 }
 
 interface Category {
@@ -480,6 +482,17 @@ export default function IdentityPage() {
     }
   }
 
+  async function updateFamilyTree(identityId: string, familyTree: FamilyMember) {
+    const { error } = await supabase
+      .from('identities')
+      .update({ family_tree: familyTree })
+      .eq('id', identityId);
+    if (!error && selectedIdentity) {
+      setIdentities(prev => prev.map(i => i.id === identityId ? { ...i, family_tree: familyTree } : i));
+      setSelectedIdentity({ ...selectedIdentity, family_tree: familyTree });
+    }
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut();
     window.location.href = '/identity/login';
@@ -555,20 +568,6 @@ export default function IdentityPage() {
               </>
             )}
             <BugReportButton appName="identity" inline />
-            {user?.email === 'ben@unpluggedperformance.com' && !viewingAsUser && (
-              <a
-                href="/identity/admin"
-                className="text-[15px] text-[#007AFF] active:opacity-60 transition-opacity"
-              >
-                Admin
-              </a>
-            )}
-            <button
-              onClick={handleLogout}
-              className="text-[15px] text-zinc-500 active:opacity-60 transition-opacity"
-            >
-              Sign Out
-            </button>
           </div>
         </div>
       </header>
@@ -586,6 +585,14 @@ export default function IdentityPage() {
           </div>
         ) : (
           <div className="space-y-6">
+            {user?.email === 'ben@unpluggedperformance.com' && !viewingAsUser && (
+              <a
+                href="/identity/admin"
+                className="text-[13px] text-[#007AFF] active:opacity-60 transition-opacity mb-1 inline-block"
+              >
+                Admin →
+              </a>
+            )}
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <IdentitySwitcher
@@ -597,6 +604,7 @@ export default function IdentityPage() {
                   onDeleteIdentity={deleteIdentity}
                   onDuplicateIdentity={duplicateIdentity}
                   onStartOnboarding={() => setShowOnboarding(true)}
+                  onLogout={handleLogout}
                 />
               </div>
               {selectedIdentity && (
@@ -744,6 +752,13 @@ export default function IdentityPage() {
                 identityId={selectedIdentity.id}
                 physicalAttributes={selectedIdentity.physical_attributes}
                 onSave={updatePhysicalAttributes}
+              />
+              {/* Family Tree */}
+              <FamilyTree
+                identityId={selectedIdentity.id}
+                identityName={selectedIdentity.name}
+                familyTree={selectedIdentity.family_tree || null}
+                onSave={updateFamilyTree}
               />
               {/* Actions */}
               <div className="pt-2 space-y-2">

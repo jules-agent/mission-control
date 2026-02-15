@@ -20,6 +20,7 @@ interface IdentitySwitcherProps {
   onDeleteIdentity: (identity: Identity) => Promise<void>;
   onDuplicateIdentity: (identity: Identity) => Promise<void>;
   onStartOnboarding: () => void;
+  onLogout?: () => void;
 }
 
 export function IdentitySwitcher({
@@ -31,6 +32,7 @@ export function IdentitySwitcher({
   onDeleteIdentity,
   onDuplicateIdentity,
   onStartOnboarding,
+  onLogout,
 }: IdentitySwitcherProps) {
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -276,6 +278,17 @@ export function IdentitySwitcher({
                 </svg>
                 New Identity
               </button>
+              {onLogout && (
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    onLogout();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 text-zinc-500 text-[15px] active:opacity-60 transition-opacity mt-2"
+                >
+                  Sign Out
+                </button>
+              )}
             </div>
           </div>
         </div>
