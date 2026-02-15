@@ -26,6 +26,8 @@ interface Identity {
   country?: string;
   physical_attributes?: Record<string, any>;
   family_tree?: FamilyMember | null;
+  gender?: string | null;
+  birthday?: string | null;
 }
 
 interface Category {
@@ -376,12 +378,12 @@ export default function IdentityPage() {
       await supabase.from('influences').insert(influences);
     }
 
-    // Seed Demographics category for gender/age
-    if (onboardingData.gender || onboardingData.ageRange) {
-      const demoItems: string[] = [];
-      if (onboardingData.gender) demoItems.push(onboardingData.gender);
-      if (onboardingData.ageRange) demoItems.push(`Age: ${onboardingData.ageRange}`);
-      await seedCategory('Demographics', 'custom', '👤', demoItems, 95);
+    // Save gender and birthday as identity attributes (not as a category)
+    const identityUpdate: Record<string, any> = {};
+    if (onboardingData.gender) identityUpdate.gender = onboardingData.gender;
+    if (onboardingData.ageRange) identityUpdate.birthday = onboardingData.ageRange;
+    if (Object.keys(identityUpdate).length > 0) {
+      await supabase.from('identities').update(identityUpdate).eq('id', identityId);
     }
 
     // Seed Music
@@ -479,6 +481,18 @@ export default function IdentityPage() {
     if (!error && selectedIdentity) {
       setIdentities(prev => prev.map(i => i.id === identityId ? { ...i, physical_attributes: physicalAttributes } : i));
       setSelectedIdentity({ ...selectedIdentity, physical_attributes: physicalAttributes });
+    }
+  }
+
+  async function updateIdentityField(identityId: string, field: string, value: any) {
+    const { error } = await supabase
+      .from('identities')
+      .update({ [field]: value })
+      .eq('id', identityId);
+    if (!error && selectedIdentity) {
+      const updated = { ...selectedIdentity, [field]: value };
+      setIdentities(prev => prev.map(i => i.id === identityId ? { ...i, [field]: value } : i));
+      setSelectedIdentity(updated);
     }
   }
 
@@ -736,6 +750,37 @@ export default function IdentityPage() {
                     className="flex-1 py-2.5 px-3 bg-zinc-800 rounded-xl text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
                   />
                 </div>
+              </div>
+              {/* Gender */}
+              <div>
+                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-2">👤 Gender</label>
+                <div className="flex gap-2">
+                  {['Male', 'Female', 'Prefer not to say'].map(g => (
+                    <button
+                      key={g}
+                      onClick={() => updateIdentityField(selectedIdentity.id, 'gender', g)}
+                      className={`flex-1 py-2.5 rounded-xl text-[14px] font-medium transition-all border ${
+                        selectedIdentity.gender === g
+                          ? 'bg-[#007AFF] border-[#007AFF] text-white'
+                          : 'bg-zinc-800 border-zinc-700 text-zinc-400 active:bg-zinc-700'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Birthday */}
+              <div>
+                <label className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium block mb-2">🎂 Birthday</label>
+                <input
+                  type="date"
+                  defaultValue={selectedIdentity.birthday || ''}
+                  onChange={(e) => {
+                    if (e.target.value) updateIdentityField(selectedIdentity.id, 'birthday', e.target.value);
+                  }}
+                  className="w-full py-2.5 px-3 bg-zinc-800 rounded-xl text-[15px] text-white focus:outline-none focus:ring-2 focus:ring-[#007AFF] [color-scheme:dark]"
+                />
               </div>
               {/* Location */}
               <div>
