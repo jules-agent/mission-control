@@ -149,7 +149,7 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
     skipNextSync.current = true;
     onUpdate(updated);
     setNewName('');
-    setNewAlignment('50');
+    setNewAlignment('75');
     setNewMoodTags('');
     setShowAddForm(false);
   }
@@ -297,17 +297,12 @@ export function InfluenceEditor({ influences, onUpdate, categoryType, categoryId
                   </button>
                 )}
 
-                {/* Thumbs down / Remove */}
+                {/* Delete */}
                 <button
-                  onClick={() => {
-                    setThumbsDownTarget(influence);
-                    setThumbsDownReason('');
-                    setThumbsDownStep('reason');
-                  }}
-                  className="ml-2 w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800/60 border border-red-900/30 text-red-400 hover:bg-red-900/20 active:opacity-60 text-[13px] flex-shrink-0"
-                  title="Remove"
+                  onClick={() => removeInfluence(influence.id)}
+                  className="ml-2 text-zinc-600 hover:text-red-400 active:opacity-60 text-[14px] flex-shrink-0 p-1"
                 >
-                  👎
+                  ✕
                 </button>
               </div>
             );
