@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { InfluenceEditor } from './InfluenceEditor';
 
 interface Category {
@@ -22,10 +23,17 @@ interface Influence {
   mood_tags?: string[];
 }
 
+interface CategorySuggestion {
+  name: string;
+  reason: string;
+  type: string;
+}
+
 interface CategoryTreeProps {
+  identityId?: string;
   categories: Category[];
   influences: Record<string, Influence[]>;
-  onAddCategory: (parentId: string | null, type: string) => void;
+  onAddCategory: (parentId: string | null, type: string, suggestedName?: string) => void;
   onAddInfluence: (categoryId: string, name: string) => void;
   onUpdateInfluences: (categoryId: string, influences: Influence[]) => void;
   onDeleteCategory: (categoryId: string) => void;
@@ -69,9 +77,38 @@ function getAllInfluencesForCategory(category: Category, influences: Record<stri
 }
 
 export function CategoryTree({
-  categories, influences, onAddCategory, onAddInfluence, onUpdateInfluences, onDeleteCategory, onSendToAddFlow
+  identityId, categories, influences, onAddCategory, onAddInfluence, onUpdateInfluences, onDeleteCategory, onSendToAddFlow
 }: CategoryTreeProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [suggestions, setSuggestions] = useState<{ parentId: string | null; items: CategorySuggestion[] } | null>(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState<string | null>(null); // parentId or 'root'
+
+  async function suggestCategories(parentId: string | null, parentName?: string) {
+    if (!identityId) return;
+    const key = parentId || 'root';
+    setLoadingSuggestions(key);
+    setSuggestions(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/identity/suggest-category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
+        body: JSON.stringify({ identityId, parentCategoryId: parentId, parentCategoryName: parentName }),
+      });
+      const data = await res.json();
+      setSuggestions({ parentId, items: data.suggestions || [] });
+    } catch (err) {
+      console.error('Suggest error:', err);
+    } finally {
+      setLoadingSuggestions(null);
+    }
+  }
+
+  function acceptSuggestion(suggestion: CategorySuggestion, parentId: string | null) {
+    onAddCategory(parentId, suggestion.type || 'custom', suggestion.name);
+    setSuggestions(prev => prev ? { ...prev, items: prev.items.filter(s => s.name !== suggestion.name) } : null);
+  }
 
   function toggleCategory(id: string) {
     setExpandedCategories(prev => {
@@ -223,6 +260,13 @@ export function CategoryTree({
                 + Subcategory
               </button>
               <button
+                onClick={(e) => { e.stopPropagation(); suggestCategories(category.id, category.name); }}
+                disabled={loadingSuggestions === category.id}
+                className="text-[13px] text-[#007AFF] active:opacity-60 transition-opacity disabled:opacity-40"
+              >
+                {loadingSuggestions === category.id ? '⏳' : '✨ Suggest'}
+              </button>
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   if (confirm(`Delete "${category.name}" and all its influences?`)) onDeleteCategory(category.id);
@@ -232,6 +276,29 @@ export function CategoryTree({
                 Delete
               </button>
             </div>
+          </div>
+
+            {/* AI Suggestions for this category */}
+            {suggestions && suggestions.parentId === category.id && suggestions.items.length > 0 && (
+              <div className="mt-2 mb-1 space-y-2 pl-1">
+                <p className="text-[12px] text-zinc-500 uppercase tracking-wider font-medium">✨ Suggested subcategories</p>
+                {suggestions.items.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between p-2.5 bg-zinc-800/60 rounded-xl border border-zinc-700/40">
+                    <div className="flex-1 min-w-0 mr-2">
+                      <p className="text-[14px] font-medium text-white">{s.name}</p>
+                      <p className="text-[12px] text-zinc-500">{s.reason}</p>
+                    </div>
+                    <button
+                      onClick={() => acceptSuggestion(s, category.id)}
+                      className="px-3 py-1.5 bg-[#007AFF] rounded-lg text-[13px] font-medium text-white active:opacity-80 flex-shrink-0"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                ))}
+                <button onClick={() => setSuggestions(null)} className="text-[12px] text-zinc-600 active:opacity-60">Dismiss</button>
+              </div>
+            )}
           </div>
 
           {/* Separator after expanded */}
@@ -254,7 +321,7 @@ export function CategoryTree({
       )}
 
       {/* Add Root Category */}
-      <div className="mt-6 text-center">
+      <div className="mt-6 flex items-center justify-center gap-4">
         <button
           onClick={() => onAddCategory(null, 'custom')}
           className="text-[15px] text-[#007AFF] active:opacity-60 transition-opacity inline-flex items-center gap-1"
@@ -264,7 +331,38 @@ export function CategoryTree({
           </svg>
           Add Category
         </button>
+        <button
+          onClick={() => suggestCategories(null)}
+          disabled={loadingSuggestions === 'root'}
+          className="text-[15px] text-[#007AFF] active:opacity-60 transition-opacity disabled:opacity-40 inline-flex items-center gap-1"
+        >
+          {loadingSuggestions === 'root' ? '⏳ Thinking...' : '✨ Suggest'}
+        </button>
       </div>
+
+      {/* Root-level AI Suggestions */}
+      {suggestions && suggestions.parentId === null && suggestions.items.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <p className="text-[13px] text-zinc-500 uppercase tracking-wider font-medium text-center">✨ Suggested categories</p>
+          {suggestions.items.map((s, i) => (
+            <div key={i} className="flex items-center justify-between p-3 bg-zinc-900/80 rounded-xl border border-zinc-700/40">
+              <div className="flex-1 min-w-0 mr-3">
+                <p className="text-[15px] font-medium text-white">{s.name}</p>
+                <p className="text-[13px] text-zinc-500">{s.reason}</p>
+              </div>
+              <button
+                onClick={() => acceptSuggestion(s, null)}
+                className="px-4 py-2 bg-[#007AFF] rounded-lg text-[14px] font-medium text-white active:opacity-80 flex-shrink-0"
+              >
+                + Add
+              </button>
+            </div>
+          ))}
+          <div className="text-center">
+            <button onClick={() => setSuggestions(null)} className="text-[13px] text-zinc-600 active:opacity-60">Dismiss</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

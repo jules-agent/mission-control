@@ -253,9 +253,9 @@ export default function IdentityPage() {
     }
   }
 
-  async function addCategory(parentId: string | null, type: string) {
+  async function addCategory(parentId: string | null, type: string, suggestedName?: string) {
     if (!selectedIdentity) return;
-    const name = prompt(`${type.charAt(0).toUpperCase() + type.slice(1)} category name:`);
+    const name = suggestedName || prompt(`${type.charAt(0).toUpperCase() + type.slice(1)} category name:`);
     if (!name) return;
     try {
       const level = parentId ? (categories.find(c => c.id === parentId)?.level || 0) + 1 : 1;
@@ -684,6 +684,7 @@ export default function IdentityPage() {
                         Behavioral preferences that guide how AI interacts with you
                       </p>
                       <CategoryTree
+                        identityId={selectedIdentity.id}
                         categories={aiCategories}
                         influences={influences}
                         onAddCategory={addCategory}
@@ -702,6 +703,7 @@ export default function IdentityPage() {
 
                   {/* Regular Identity Categories */}
                   <CategoryTree
+                    identityId={selectedIdentity.id}
                     categories={regularCategories}
                     influences={influences}
                     onAddCategory={addCategory}
